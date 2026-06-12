@@ -21,6 +21,7 @@ node_modules/
 
 # Test / CI artifacts
 TestResults/
+.coverage
 coverage/
 coveragereport/
 sbom/
