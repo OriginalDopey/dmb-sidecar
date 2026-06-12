@@ -1,7 +1,7 @@
 namespace DmbSidecar.Api.Services.LineupExplain;
 
 /// <summary>
-/// Routed question families for offline Lineup Lab explain. Tune prose per handler.
+/// Routed question families for offline Lineup Lab explain.
 /// </summary>
 public enum LineupQuestionKind
 {

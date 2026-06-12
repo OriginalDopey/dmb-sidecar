@@ -10,7 +10,7 @@ Enterprise expectations for this repo: every merge to `main` must pass CI, publi
 
 | Job | Gate | Artifacts |
 |-----|------|-----------|
-| .NET API | `dotnet test` (49 tests) | `coverage-dotnet` + **`coverage-dotnet-html`** |
+| .NET API | `dotnet test` (54 tests) | `coverage-dotnet` + **`coverage-dotnet-html`** |
 | MCP bridge | `pytest` + **80%** line coverage on `lineup_engine` | `sbom-python` |
 | Extension | `vitest` + **90%** on `lineup-format.ts` | `sbom-extension` |
 
@@ -31,7 +31,7 @@ Enterprise expectations for this repo: every merge to `main` must pass CI, publi
 - `LineupExplain/*` — classifier, router, all six handlers
 - `McpDataFilter` — stale cache rejection
 - `lineup_engine._def_runs` — SS/2B error penalty
-- API integration — `/health`, `/lineup/explain` auth + routing
+- API integration — `/health`, `/lineup/explain`, `/lineup/analyze` auth + routing
 - Extension formatting — OBP/OPS/RC/600 display
 
 **Explicitly out of scope for unit coverage** (integration / manual only):

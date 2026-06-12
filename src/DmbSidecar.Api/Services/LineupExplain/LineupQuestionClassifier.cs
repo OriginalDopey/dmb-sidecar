@@ -4,7 +4,7 @@ namespace DmbSidecar.Api.Services.LineupExplain;
 
 /// <summary>
 /// Maps free-text lineup questions to a handler kind + extracted entities.
-/// Add patterns here; tune narrative in the matching handler.
+/// Maps free-text questions to handler kinds and extracted entities.
 /// </summary>
 internal static class LineupQuestionClassifier
 {

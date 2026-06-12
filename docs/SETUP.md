@@ -1,43 +1,44 @@
 # Setup (detailed)
 
-## Install toolchain
+## Prerequisites
+
+- macOS or Linux, Chrome, .NET 8 SDK, Node 20+, Python 3.11+
+- Sibling repos (optional for full MCP): [DiamondMind](https://github.com/OriginalDopey/DiamondMind), [dmb-mcp-server](https://github.com/OriginalDopey/dmb-mcp-server)
+
+## Clone and configure
 
 ```bash
-brew install dotnet@8
-echo 'export DOTNET_ROOT="/opt/homebrew/opt/dotnet@8/libexec"' >> ~/.zshrc
-echo 'export PATH="/opt/homebrew/opt/dotnet@8/bin:$PATH"' >> ~/.zshrc
-```
-
-## Clone / init repo
-
-```bash
-cd /Users/originaldopey/Documents/CursonProjects/dmb-sidecar
-git init
+git clone https://github.com/OriginalDopey/dmb-sidecar.git
+cd dmb-sidecar
 cp .env.local.example .env.local
+# Edit paths and DMB_ENTRY_TEAM_ID
+./scripts/install-git-hooks.sh   # pre-commit quality gate
 ```
 
-## dmb-mcp-server prerequisites
+## dmb-mcp-server (optional — live league data)
 
-1. `dmb-mcp-server` installed with `config/leagues.json` containing your entry team
-2. `DiamondMind/.is_session` valid (`python3.11 -m dmb_mcp.cli auth --cookie "..."`)
-3. At least one `scrape --mode refresh` run so SQLite has data
+1. Valid `config/leagues.json` with your entry team
+2. `DiamondMind/.is_session` from `dmb_mcp.cli auth`
+3. At least one `scrape --mode refresh` so SQLite has data
 
-## Foundry
+Lineup Lab works offline with `data/player-pool/` CSVs only.
 
-Follow [manual-steps/FOUNDRY_IQ_PORTAL.md](manual-steps/FOUNDRY_IQ_PORTAL.md)
+## Foundry (optional)
 
-## Verify stack
+See [OPTIONAL_FOUNDRY.md](OPTIONAL_FOUNDRY.md).
+
+## Run and verify
 
 ```bash
-# Terminal 1
-./scripts/start-dev.sh
-
-# Terminal 2
-curl http://127.0.0.1:5280/health
-curl http://127.0.0.1:8765/health
-curl -X POST http://127.0.0.1:5280/foundry/smoke -H "X-Api-Key: dev-key-change-me"
+./scripts/start-dev.sh          # terminal 1
+./scripts/verify-stack.sh     # terminal 2
+cd extension && npm run build
+# Chrome → Load unpacked → extension/
 ```
 
-## Extension
+## Quality before you commit
 
-[manual-steps/CHROME_LOAD_UNPACKED.md](manual-steps/CHROME_LOAD_UNPACKED.md)
+```bash
+./scripts/pre-commit-quality.sh   # or rely on installed git hook
+./scripts/ci.sh                   # full CI mirror + SBOM
+```

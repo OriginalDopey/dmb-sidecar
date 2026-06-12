@@ -2,14 +2,20 @@
 # Start MCP bridge + API for local development.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-export DOTNET_ROOT="${DOTNET_ROOT:-/opt/homebrew/opt/dotnet@8/libexec}"
-export PATH="/opt/homebrew/opt/dotnet@8/bin:$PATH"
 
-# dmb-mcp-server paths (override in .env.local)
-export DMB_MCP_SRC="${DMB_MCP_SRC:-/Users/originaldopey/Documents/CursonProjects/dmb-mcp-server/src}"
-export DMB_DB_PATH="${DMB_DB_PATH:-/Users/originaldopey/Documents/CursonProjects/DiamondMind/data/is_scout.db}"
-export DMB_SESSION_PATH="${DMB_SESSION_PATH:-/Users/originaldopey/Documents/CursonProjects/DiamondMind/.is_session}"
-export DMB_CONFIG_PATH="${DMB_CONFIG_PATH:-/Users/originaldopey/Documents/CursonProjects/dmb-mcp-server/config/leagues.json}"
+# Optional Homebrew dotnet@8 (macOS); override DOTNET_ROOT if dotnet is on PATH elsewhere.
+if command -v dotnet >/dev/null 2>&1; then
+  :
+elif [[ -d /opt/homebrew/opt/dotnet@8/bin ]]; then
+  export DOTNET_ROOT="${DOTNET_ROOT:-/opt/homebrew/opt/dotnet@8/libexec}"
+  export PATH="/opt/homebrew/opt/dotnet@8/bin:$PATH"
+fi
+
+# Sibling-repo defaults (override in .env.local)
+export DMB_MCP_SRC="${DMB_MCP_SRC:-$ROOT/../dmb-mcp-server/src}"
+export DMB_DB_PATH="${DMB_DB_PATH:-$ROOT/../DiamondMind/data/is_scout.db}"
+export DMB_SESSION_PATH="${DMB_SESSION_PATH:-$ROOT/../DiamondMind/.is_session}"
+export DMB_CONFIG_PATH="${DMB_CONFIG_PATH:-$ROOT/../dmb-mcp-server/config/leagues.json}"
 export DMB_ENTRY_TEAM_ID="${DMB_ENTRY_TEAM_ID:-}"
 
 if [[ -f "$ROOT/.env.local" ]]; then

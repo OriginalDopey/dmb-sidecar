@@ -22,8 +22,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Extension", policy =>
     {
-        policy.WithOrigins("chrome-extension://*")
-            .SetIsOriginAllowed(_ => true) // dev: allow extension + localhost
+        policy.SetIsOriginAllowed(origin =>
+                origin.StartsWith("chrome-extension://", StringComparison.OrdinalIgnoreCase)
+                || origin.StartsWith("http://127.0.0.1:", StringComparison.OrdinalIgnoreCase)
+                || origin.StartsWith("http://localhost:", StringComparison.OrdinalIgnoreCase))
             .AllowAnyHeader()
             .AllowAnyMethod();
     });

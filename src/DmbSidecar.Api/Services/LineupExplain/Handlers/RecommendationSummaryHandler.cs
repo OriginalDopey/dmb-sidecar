@@ -4,7 +4,7 @@ using DmbSidecar.Api.Models;
 namespace DmbSidecar.Api.Services.LineupExplain.Handlers;
 
 /// <summary>
-/// Overall why the recommendation differs — tune high-level story here.
+/// Summarizes top lineup swaps and total RC+def delta vs current.
 /// </summary>
 internal sealed class RecommendationSummaryHandler : ILineupExplainHandler
 {

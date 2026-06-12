@@ -37,7 +37,7 @@ Use this to **teach** the architecture, not just demo it.
 
 ### 4. MCP bridge (Python)
 - Reuses `dmb-mcp-server` SQLite cache
-- HTTP for hackathon speed; same data as MCP `query` / `report` tools
+- HTTP surface for fast local dev; same data as MCP `query` / `report` tools
 
 **Teach:** "Tool servers stay in whatever language they're already in."
 
@@ -53,15 +53,11 @@ User on IS lineup page
   → Answer + citations back to panel
 ```
 
-## Speed-to-POC story (Roboyo)
+## Delivery story (interviews)
 
-- Unfamiliar: C# API, Foundry IQ portal, Chrome MV3
-- Familiar: MCP pattern, agent instructions, presales demos
-- **Proof:** BUILD_JOURNAL + public repo + 19 IQ docs synced in one script
-
-## C# honesty (Ropes)
-
-> "I used Cursor to scaffold C# syntax; I owned architecture, security boundaries, and the Foundry integration I validated in Python first."
+- **Unfamiliar stack pieces:** C# API, Foundry IQ portal, Chrome MV3
+- **Familiar patterns:** MCP tool layer, agent instructions, read-only overlay
+- **Proof:** Public repo, CI with coverage + SBOM, BUILD_JOURNAL for traceability
 
 ## Files to open while teaching
 

@@ -4,7 +4,7 @@ using DmbSidecar.Api.Models;
 namespace DmbSidecar.Api.Services.LineupExplain.Handlers;
 
 /// <summary>
-/// Why bat X at slot Y — tune narrative here (OBP table-setters, cleanup RC, PA tradeoffs).
+/// Explains batting-order slots using implementation-plan rules (OBP #1–2, RC heart #3–5).
 /// </summary>
 internal sealed class BattingOrderHandler : ILineupExplainHandler
 {

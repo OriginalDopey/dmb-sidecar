@@ -19,12 +19,9 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-# Allow local dev without installing package
-_MCP_SRC = os.environ.get(
-    "DMB_MCP_SRC",
-    "/Users/originaldopey/Documents/CursonProjects/dmb-mcp-server/src",
-)
-if _MCP_SRC not in sys.path:
+# dmb-mcp-server/src on PYTHONPATH for league-data routes (set via start-dev.sh / .env.local)
+_MCP_SRC = os.environ.get("DMB_MCP_SRC", "").strip()
+if _MCP_SRC and _MCP_SRC not in sys.path:
     sys.path.insert(0, _MCP_SRC)
 
 _ctx = None

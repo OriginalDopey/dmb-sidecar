@@ -3,7 +3,7 @@ using DmbSidecar.Api.Models;
 
 namespace DmbSidecar.Api.Services.LineupExplain.Handlers;
 
-/// <summary>DH defense-recovery logic — prose tuned for demo.</summary>
+/// <summary>Explains DH assignment using defense-recovery logic (weakest glove parked).</summary>
 internal sealed class DhAssignmentHandler : ILineupExplainHandler
 {
     public LineupQuestionKind Kind => LineupQuestionKind.DhAssignment;

@@ -4,7 +4,7 @@
 Accepted — 2026-06-12
 
 ## Context
-We need a Chrome overlay, enterprise-credible orchestration (Ropes & Gray), and live DMB league data. Single-language rewrite would miss the hackathon deadline.
+We need a Chrome overlay, enterprise-credible API orchestration, and live DMB league data. A single-language rewrite would delay delivery without adding capability.
 
 ## Decision
 | Layer | Language | Responsibility |

@@ -4,7 +4,7 @@ using DmbSidecar.Api.Models;
 namespace DmbSidecar.Api.Services.LineupExplain.Handlers;
 
 /// <summary>
-/// Why A over B at a position — tune head-to-head defense/bat comparison here.
+/// Compares two players at the same position (defense and bat side-by-side).
 /// </summary>
 internal sealed class PositionComparisonHandler : ILineupExplainHandler
 {

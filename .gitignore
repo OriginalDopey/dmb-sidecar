@@ -13,6 +13,7 @@ obj/
 # Python
 .venv/
 __pycache__/
+.pytest_cache/
 *.pyc
 
 # Node (dist committed so extension loads after clone without npm build)

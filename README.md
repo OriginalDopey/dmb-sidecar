@@ -20,6 +20,7 @@ A side panel reads the IS screen you're on, grounds advice in **Microsoft Foundr
 | **Architecture** | [ARCHITECTURE.md](ARCHITECTURE.md) | System diagram, security boundaries, ADRs |
 | **Demo** | [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | 5-minute interview recording script |
 | **Contributing** | [CONTRIBUTING.md](CONTRIBUTING.md) | PR workflow, adding explain question types |
+| **GitHub policy** | [docs/GITHUB_BEST_PRACTICES.md](docs/GITHUB_BEST_PRACTICES.md) | Branch protection, merge settings, CI gates |
 
 ---
 
@@ -43,6 +44,7 @@ Python bridge :8765  →  lineup optimization (RC+def), MCP league cache
 
 ```bash
 cp .env.local.example .env.local   # set DMB_ENTRY_TEAM_ID
+./scripts/install-git-hooks.sh     # pre-commit quality gate
 ./scripts/sync-iq-sources.sh
 ./scripts/start-dev.sh             # API :5280, bridge :8765
 

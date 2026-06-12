@@ -4,7 +4,6 @@ namespace DmbSidecar.Api.Services;
 
 /// <summary>
 /// Offline keyword search over iq-sources/ markdown when Foundry is unavailable.
-/// Demo-grade substitute until portal KB is wired.
 /// </summary>
 public sealed partial class LocalIqService
 {

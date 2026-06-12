@@ -1,4 +1,4 @@
-# Demo Script (5 min max — hackathon + interviews)
+# Demo Script (5 min max — interviews)
 
 ## Setup (before recording)
 
@@ -34,6 +34,6 @@ Show `ARCHITECTURE.md` diagram: Extension → C# API → Foundry IQ + MCP.
 
 Show offline fallback message in panel — explain T04 pending — still demo page context + MCP snapshot from API.
 
-## Upload
+## Recording tip
 
-YouTube or Vimeo unlisted → paste link in hackathon submission + README.
+Keep an unlisted video link in your portfolio README for async reviewers.

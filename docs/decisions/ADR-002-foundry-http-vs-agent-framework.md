@@ -14,8 +14,8 @@ Microsoft's newest hosted-agent samples require .NET 10. Mac had .NET 5; we inst
 with `DefaultAzureCredential` bearer token. Agent + IQ configured in **Foundry portal**, not in C# code.
 
 ## Alternatives rejected
-- **Agent Framework .NET 10 hosted agent** — wrong SDK version, overkill for hackathon.
-- **Python API only** — weaker Ropes C# narrative.
+- **Agent Framework .NET 10 hosted agent** — wrong SDK version for this project; agent config belongs in portal.
+- **Python API only** — loses a clear integration/orchestration layer for enterprise deployment patterns.
 
 ## Consequences
 - Portal is source of truth for instructions, IQ, tools.

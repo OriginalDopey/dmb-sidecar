@@ -6,9 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
-  security-events: write
 
 env:
   DOTNET_NOLOGO: true
@@ -160,6 +163,13 @@ jobs:
           npm ci --cache /tmp/npm-cache-dmb
           npm run build
           npm test
+
+      - name: Verify committed extension/dist matches src
+        run: |
+          git diff --exit-code extension/dist || (
+            echo "::error::extension/dist is stale — run 'cd extension && npm run build' and commit dist"
+            exit 1
+          )
 
       - name: Extension coverage summary
         working-directory: extension

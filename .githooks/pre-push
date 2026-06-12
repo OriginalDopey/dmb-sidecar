@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Block direct pushes to main — use PRs + squash merge (see docs/GITHUB_BEST_PRACTICES.md).
+set -euo pipefail
+
+if [[ "${DMB_SIDECAR_ALLOW_MAIN_PUSH:-}" == "1" ]]; then
+  exit 0
+fi
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [[ "$remote_ref" == "refs/heads/main" ]]; then
+    echo "✗ Direct push to main is blocked. Use a feature branch + PR." >&2
+    echo "  Emergency override: DMB_SIDECAR_ALLOW_MAIN_PUSH=1 git push ..." >&2
+    echo "  See docs/GITHUB_BEST_PRACTICES.md" >&2
+    exit 1
+  fi
+done
+
+exit 0

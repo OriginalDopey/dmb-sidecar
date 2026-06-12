@@ -1,0 +1,39 @@
+name: Bug report
+description: Something is broken in the sidecar, API, or bridge
+title: "[bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Include steps to reproduce. Do **not** paste API keys or `.is_session` content.
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. ./scripts/start-dev.sh\n2. Open lineup page\n3. ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: "macOS 15, Chrome 137, .NET 8, Python 3.11"
+    validations:
+      required: true

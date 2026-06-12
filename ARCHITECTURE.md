@@ -72,12 +72,12 @@ flowchart TB
 - [ADR-002](docs/decisions/ADR-002-foundry-http-vs-agent-framework.md) — Responses API not .NET 10 Agent Framework
 - [ADR-003](docs/decisions/ADR-003-mcp-bridge-import-vs-stdio.md) — HTTP bridge imports dmb_mcp
 
-## Hackathon alignment
+## Design goals
 
-| Requirement | How met |
-|-------------|---------|
-| Microsoft Foundry | Agent + Responses API |
-| IQ layer | Foundry IQ knowledge base |
-| MCP / tools | dmb-mcp-server data via bridge |
-| Multi-step reasoning | Prompt assembly: page → MCP → IQ-grounded agent |
-| Demoable | Chrome side panel on live IS |
+| Goal | How met |
+|------|---------|
+| Grounded answers | Foundry IQ knowledge base + offline `iq-sources/` fallback |
+| Live league context | dmb-mcp-server data via HTTP bridge |
+| Enterprise orchestration | ASP.NET Core API — auth, CORS, thin controllers |
+| Auditable reasoning | Typed explain handlers + citations in responses |
+| Demoable on real app | Chrome side panel on ImagineSports pages |

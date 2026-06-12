@@ -12,8 +12,7 @@ npm run build
 
 1. Open Chrome → `chrome://extensions`
 2. Enable **Developer mode** (top right)
-3. **Load unpacked** → select folder:
-   `/Users/originaldopey/Documents/CursonProjects/dmb-sidecar/extension`
+3. **Load unpacked** → select the `extension/` folder in your clone (contains `manifest.json`)
 4. Pin **DMB Sidecar** to toolbar
 
 ## Configure

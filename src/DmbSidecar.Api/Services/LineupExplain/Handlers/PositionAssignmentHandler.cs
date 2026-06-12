@@ -4,7 +4,7 @@ using DmbSidecar.Api.Models;
 namespace DmbSidecar.Api.Services.LineupExplain.Handlers;
 
 /// <summary>
-/// Why player Z plays position P — tune defense vs bat-at-spot narrative here.
+/// Explains why a player is assigned to a defensive position (RC+def at spot).
 /// </summary>
 internal sealed class PositionAssignmentHandler : ILineupExplainHandler
 {

@@ -51,6 +51,33 @@ public sealed class ApiEndpointTests : IClassFixture<SidecarWebApplicationFactor
     }
 
     [Fact]
+    public async Task Lineup_analyze_requires_api_key()
+    {
+        var response = await _client.PostAsJsonAsync(
+            "/lineup/analyze",
+            LineupTestFixtures.DemoContext);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Lineup_analyze_returns_comparison()
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/lineup/analyze");
+        request.Headers.Add("X-Api-Key", SidecarWebApplicationFactory.TestApiKey);
+        request.Content = JsonContent.Create(LineupTestFixtures.DemoContext);
+
+        var response = await _client.SendAsync(request);
+        // Bridge may be down in CI — accept 502 or 200
+        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.BadGateway);
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            var body = await response.Content.ReadFromJsonAsync<LineupAnalyzeResponse>();
+            body!.CurrentLineup.Should().HaveCount(9);
+            body.RecommendedLineup.Should().NotBeEmpty();
+        }
+    }
+
+    [Fact]
     public async Task Lineup_explain_rejects_empty_question()
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/lineup/explain");

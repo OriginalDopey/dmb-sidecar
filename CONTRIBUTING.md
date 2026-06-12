@@ -7,11 +7,18 @@
 
 ## Workflow
 
-1. Branch from `main`
-2. Make focused changes; match existing style (`.editorconfig`)
-3. Add or update tests for behavior you change
-4. Run `./scripts/ci.sh` locally
-5. Open PR — CI must pass (build, test, coverage gates, SBOM)
+1. `./scripts/install-git-hooks.sh` once per clone (runs quality gate on commit)
+2. **Never push directly to `main`** — branch + PR only (see [docs/GITHUB_BEST_PRACTICES.md](docs/GITHUB_BEST_PRACTICES.md))
+3. Branch from `main`: `git checkout -b feat/short-description`
+4. Make focused changes; match existing style (`.editorconfig`)
+5. Add or update tests for behavior you change
+6. Run `./scripts/pre-commit-quality.sh` before commit (or rely on the hook)
+7. Run `./scripts/ci.sh` before opening a PR
+8. Open PR — all three CI jobs must pass; use **squash merge**
+
+**Cursor:** invoke skill `dmb-sidecar-quality-gate` before commits or PRs.
+
+**Maintainers:** after GitHub Pro or making the repo public, run `./scripts/configure-github-protection.sh` to enforce checks on `main`.
 
 ## Adding a Lineup Explain question type
 
