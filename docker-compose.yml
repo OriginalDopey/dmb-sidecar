@@ -1,0 +1,29 @@
+# Optional local orchestration (API + MCP bridge).
+# Extension still runs in Chrome on host.
+# Usage: docker compose up --build
+# Note: Requires mounting DiamondMind data paths — see comments below.
+
+services:
+  mcp-bridge:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mcp-bridge
+    ports:
+      - "8765:8765"
+    environment:
+      DMB_MCP_SRC: /app/dmb-mcp-src
+      DMB_DB_PATH: /data/is_scout.db
+      DMB_SESSION_PATH: /secrets/.is_session
+      DMB_CONFIG_PATH: /config/leagues.json
+      DMB_ENTRY_TEAM_ID: ${DMB_ENTRY_TEAM_ID}
+    volumes:
+      - ${DMB_MCP_SRC:-../dmb-mcp-server/src}:/app/dmb-mcp-src:ro
+      - ${DMB_DB_PATH:-../DiamondMind/data/is_scout.db}:/data/is_scout.db:ro
+      - ${DMB_SESSION_PATH:-../DiamondMind/.is_session}:/secrets/.is_session:ro
+      - ${DMB_CONFIG_PATH:-../dmb-mcp-server/config/leagues.json}:/config/leagues.json:ro
+
+  # API: prefer `dotnet run` on host for Foundry DefaultAzureCredential + az login
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/Dockerfile.api

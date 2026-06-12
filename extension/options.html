@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DMB Sidecar Options</title>
+  <style>
+    body { font-family: system-ui; max-width: 480px; margin: 2rem auto; padding: 0 1rem; }
+    label { display: block; margin-top: 1rem; font-weight: 600; }
+    input { width: 100%; padding: 8px; margin-top: 4px; }
+    button { margin-top: 1rem; padding: 8px 16px; }
+    #saved { color: green; }
+  </style>
+</head>
+<body>
+  <h1>DMB Sidecar Settings</h1>
+  <p>API runs locally during development. Never put Azure keys here.</p>
+  <label>API URL <input id="apiUrl" type="url" placeholder="http://127.0.0.1:5280" /></label>
+  <label>API Key <input id="apiKey" type="password" placeholder="dev-key-change-me" /></label>
+  <button id="save">Save</button>
+  <p id="saved"></p>
+  <script src="options.js"></script>
+</body>
+</html>

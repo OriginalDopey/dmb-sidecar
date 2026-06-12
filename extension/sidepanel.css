@@ -1,0 +1,47 @@
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  margin: 0;
+  padding: 12px;
+  background: #0f1419;
+  color: #e7e9ea;
+  font-size: 13px;
+  line-height: 1.45;
+}
+header h1 { font-size: 1.1rem; margin: 0 0 4px; color: #7dd3fc; }
+.disclaimer { font-size: 0.7rem; color: #71767b; margin: 0 0 12px; }
+.card {
+  background: #16202a;
+  border: 1px solid #2f3336;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.card h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: #8b98a5; margin: 0 0 8px; }
+.mono { font-family: ui-monospace, monospace; font-size: 0.8rem; word-break: break-all; }
+.preview { font-size: 0.75rem; color: #8b98a5; margin: 0; white-space: pre-wrap; max-height: 120px; overflow: auto; }
+textarea {
+  width: 100%;
+  background: #0f1419;
+  border: 1px solid #2f3336;
+  border-radius: 6px;
+  color: #e7e9ea;
+  padding: 8px;
+  resize: vertical;
+}
+.buttons { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+button {
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+button.primary { background: #1d9bf0; color: #fff; }
+button.secondary { background: #2f3336; color: #e7e9ea; }
+.status { font-size: 0.75rem; color: #8b98a5; }
+.status.error { color: #f87171; }
+.warning { font-size: 0.75rem; color: #fbbf24; }
+.answer { white-space: pre-wrap; font-size: 0.9rem; }
+#citations { padding-left: 1.2rem; font-size: 0.75rem; color: #8b98a5; }
+.tag { background: #1e3a5f; color: #7dd3fc; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem; }

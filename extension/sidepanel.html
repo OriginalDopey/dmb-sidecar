@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DMB Sidecar</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <header>
+    <h1>DMB Sidecar</h1>
+    <p class="disclaimer">Not affiliated with ImagineSports</p>
+  </header>
+
+  <section class="card">
+    <h2>Current page</h2>
+    <p id="page-label" class="mono">—</p>
+    <pre id="context-preview" class="preview"></pre>
+  </section>
+
+  <section class="card">
+    <h2>Ask</h2>
+    <textarea id="question" rows="3" placeholder="e.g. Review this lineup vs RHP…"></textarea>
+    <div class="buttons">
+      <button id="explain-btn" type="button" class="secondary">Explain this screen</button>
+      <button id="ask-btn" type="button" class="primary">Ask</button>
+    </div>
+  </section>
+
+  <p id="status" class="status">Loading…</p>
+  <p id="warning" class="warning"></p>
+
+  <section class="card">
+    <h2>Answer</h2>
+    <div id="answer" class="answer"></div>
+    <ul id="citations"></ul>
+  </section>
+
+  <script type="module" src="dist/sidepanel.js"></script>
+</body>
+</html>

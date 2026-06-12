@@ -1,0 +1,27 @@
+# Secrets
+.env
+.env.local
+*.user
+**/appsettings.*.local.json
+
+# .NET
+bin/
+obj/
+*.dll
+*.pdb
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node (dist committed so extension loads after clone without npm build)
+node_modules/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Never commit IS session
+.is_session
