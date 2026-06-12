@@ -2,8 +2,16 @@ using DmbSidecar.Api.Models;
 
 namespace DmbSidecar.Api.Services;
 
+/// <summary>
+/// Validates MCP report text before it is injected into Foundry prompts.
+/// Drops empty, placeholder, and stale snapshots that disagree with the browser DOM roster.
+/// Used by <see cref="AdviseService"/> to prevent advising against an outdated cached team.
+/// </summary>
 internal static class McpDataFilter
 {
+    /// <summary>
+    /// Returns normalized snapshot text, or null when missing, placeholder, or stale vs. page roster.
+    /// </summary>
     public static string? NormalizeSnapshot(string? text, PageContext? context = null)
     {
         if (string.IsNullOrWhiteSpace(text)) return null;
@@ -14,10 +22,13 @@ internal static class McpDataFilter
         return text;
     }
 
+    /// <summary>Returns league summary text, or null when missing or placeholder.</summary>
     public static string? NormalizeSummary(string? text) =>
         string.IsNullOrWhiteSpace(text) || text.Contains("No cached", StringComparison.OrdinalIgnoreCase)
             ? null
             : text;
+
+    // --- Stale-cache detection ---
 
     /// <summary>Reject MCP roster when it clearly disagrees with the browser DOM (stale scrape).</summary>
     private static bool SnapshotMatchesPage(string snapshot, PageContext context)

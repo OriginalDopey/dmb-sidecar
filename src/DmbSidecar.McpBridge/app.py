@@ -1,10 +1,31 @@
 """
-HTTP bridge over dmb-mcp-server repository layer.
-Avoids stdio MCP from C# — imports dmb_mcp directly.
+HTTP bridge over the dmb-mcp-server repository layer.
 
-Env (same as dmb-mcp-server):
-  DMB_DB_PATH, DMB_SESSION_PATH, DMB_CONFIG_PATH, DMB_ENTRY_TEAM_ID
-  PYTHONPATH must include dmb-mcp-server/src
+This module exposes a FastAPI application that lets the C# DmbSidecar.Api host
+query cached ImagineSports league data without spawning a stdio MCP process.
+It imports ``dmb_mcp`` directly and mirrors the data-access surface used by
+dmb-mcp-server tools (standings, roster, financials, injuries, reports).
+
+Environment variables (same contract as dmb-mcp-server):
+
+    DMB_DB_PATH
+        Path to the SQLite cache populated by MCP scrapes.
+    DMB_SESSION_PATH
+        Browser session cookie store for authenticated scrapes.
+    DMB_CONFIG_PATH
+        Optional MCP configuration file path.
+    DMB_ENTRY_TEAM_ID
+        Default entry-team scope when callers pass ``"mine"``.
+    DMB_MCP_SRC
+        Optional path to ``dmb-mcp-server/src``; inserted onto ``sys.path`` at
+        startup when set (typically via ``start-dev.sh`` or ``.env.local``).
+    PYTHONPATH
+        Must include ``dmb-mcp-server/src`` for league-data routes when
+        ``DMB_MCP_SRC`` is not set.
+
+Entry point::
+
+    uvicorn app:app --host 127.0.0.1 --port 8765
 """
 
 from __future__ import annotations
@@ -19,15 +40,27 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+# ---------------------------------------------------------------------------
+# Imports & runtime path configuration
+# ---------------------------------------------------------------------------
+
 # dmb-mcp-server/src on PYTHONPATH for league-data routes (set via start-dev.sh / .env.local)
 _MCP_SRC = os.environ.get("DMB_MCP_SRC", "").strip()
 if _MCP_SRC and _MCP_SRC not in sys.path:
     sys.path.insert(0, _MCP_SRC)
 
+# Lazily initialized singleton; closed on application shutdown.
 _ctx = None
 
 
 def _get_ctx():
+    """
+    Return the shared ``AppContext`` instance, creating it on first use.
+
+    ``AppContext`` wires settings, database access, session auth, and the
+    scraper. The instance is cached for the lifetime of the process unless
+    ``lifespan`` tears it down.
+    """
     global _ctx
     if _ctx is None:
         from dmb_mcp.context import AppContext
@@ -36,8 +69,19 @@ def _get_ctx():
     return _ctx
 
 
+# ---------------------------------------------------------------------------
+# Application lifecycle
+# ---------------------------------------------------------------------------
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    """
+    FastAPI lifespan hook that releases MCP resources on shutdown.
+
+    Yields immediately after startup; on shutdown closes the database
+    connection held by ``AppContext`` and clears the module-level cache.
+    """
     yield
     global _ctx
     if _ctx is not None:
@@ -54,11 +98,24 @@ app.add_middleware(
 )
 
 
+# ---------------------------------------------------------------------------
+# Request / response models
+# ---------------------------------------------------------------------------
+
+
 class ReportResponse(BaseModel):
+    """Plain-text report payload returned by snapshot and summary endpoints."""
+
     text: str
 
 
 class LineupAnalyzeRequest(BaseModel):
+    """
+    Body for ``POST /lineup/analyze``.
+
+    Field names mirror the C# API contract (camelCase) for JSON interop.
+    """
+
     pitcherSide: str = "rhp"
     currentLineup: list[dict[str, Any]] = []
     rosterNames: list[str] = []
@@ -66,13 +123,25 @@ class LineupAnalyzeRequest(BaseModel):
     positionEligibility: dict[str, list[str]] | None = None
 
 
+# ---------------------------------------------------------------------------
+# Health & configuration endpoints
+# ---------------------------------------------------------------------------
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
+    """Liveness probe used by the sidecar host and integration tests."""
     return {"status": "ok", "service": "mcp-bridge"}
 
 
 @app.get("/config/status")
 def config_status() -> dict[str, Any]:
+    """
+    Report database path, scoped entry team, and browser session validity.
+
+    Useful for diagnosing missing scrapes or expired ImagineSports cookies
+    before calling data endpoints.
+    """
     ctx = _get_ctx()
     status = ctx.session.auth_status()
     return {
@@ -83,8 +152,19 @@ def config_status() -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# League data endpoints (Repository-backed)
+# ---------------------------------------------------------------------------
+
+
 @app.get("/standings")
 def standings(league_id: str = "mine") -> list[dict]:
+    """
+    Return cached division standings for a league.
+
+    Args:
+        league_id: League identifier or ``"mine"`` to resolve from entry team.
+    """
     from dmb_mcp.db.repository import Repository
 
     ctx = _get_ctx()
@@ -95,6 +175,12 @@ def standings(league_id: str = "mine") -> list[dict]:
 
 @app.get("/roster")
 def roster(team_id: str = "mine") -> list[dict]:
+    """
+    Return cached roster rows for a team.
+
+    Args:
+        team_id: Owner team id or ``"mine"`` to resolve from entry team.
+    """
     from dmb_mcp.db.repository import Repository
 
     ctx = _get_ctx()
@@ -105,6 +191,11 @@ def roster(team_id: str = "mine") -> list[dict]:
 
 @app.get("/financials")
 def financials(team_id: str = "mine") -> dict:
+    """
+    Return cached bankroll and salary summary for a team.
+
+    Returns an empty dict when no financial row exists in the cache.
+    """
     from dmb_mcp.db.repository import Repository
 
     ctx = _get_ctx()
@@ -116,6 +207,7 @@ def financials(team_id: str = "mine") -> dict:
 
 @app.get("/injuries")
 def injuries(team_id: str = "mine") -> list[dict]:
+    """Return cached injury list for a team."""
     from dmb_mcp.db.repository import Repository
 
     ctx = _get_ctx()
@@ -124,7 +216,18 @@ def injuries(team_id: str = "mine") -> list[dict]:
     return repo.injuries(tid)
 
 
+# ---------------------------------------------------------------------------
+# Report helpers & endpoints
+# ---------------------------------------------------------------------------
+
+
 def _owner_team_for_scope(ctx, scope: str | None) -> str | None:
+    """
+    Map an entry-team scope to the owner ``team_id`` stored in the cache.
+
+    The MCP scrape keys roster/finance rows by owner team id; entry team id
+    alone is not always sufficient for repository lookups.
+    """
     entry = ctx.resolve_entry_team_id(scope)
     row = ctx.db.execute(
         "SELECT owner_team_id FROM leagues WHERE entry_team_id = ? LIMIT 1",
@@ -137,6 +240,12 @@ def _owner_team_for_scope(ctx, scope: str | None) -> str | None:
 
 @app.get("/report/team_snapshot")
 def team_snapshot(team_id: str = "mine") -> ReportResponse:
+    """
+    Build a human-readable roster and finance snapshot for the scoped team.
+
+    When no cached data exists, returns guidance to scrape or use on-page
+    roster context instead of raising an error.
+    """
     from dmb_mcp.db.repository import Repository
 
     ctx = _get_ctx()
@@ -165,6 +274,12 @@ def team_snapshot(team_id: str = "mine") -> ReportResponse:
 
 @app.get("/report/league_summary")
 def league_summary(team_id: str = "mine") -> ReportResponse:
+    """
+    Return the formatted league summary text from the repository cache.
+
+    Detects empty standings (zero teams) and returns a scrape hint instead of
+    misleading blank output.
+    """
     from dmb_mcp.db.repository import Repository
 
     ctx = _get_ctx()
@@ -182,8 +297,19 @@ def league_summary(team_id: str = "mine") -> ReportResponse:
     return ReportResponse(text=text)
 
 
+# ---------------------------------------------------------------------------
+# Lineup analysis (delegates to lineup_engine)
+# ---------------------------------------------------------------------------
+
+
 @app.post("/lineup/analyze")
 def lineup_analyze(body: LineupAnalyzeRequest) -> dict:
+    """
+    Compare a user's lineup against an optimal RC+def recommendation.
+
+    Delegates to ``lineup_engine.analyze``; response shape matches the C#
+    ``LineupAnalyzeResponse`` contract.
+    """
     from lineup_engine import analyze
 
     return analyze(
@@ -195,8 +321,22 @@ def lineup_analyze(body: LineupAnalyzeRequest) -> dict:
     )
 
 
+# ---------------------------------------------------------------------------
+# Scrape operations
+# ---------------------------------------------------------------------------
+
+
 @app.post("/scrape/refresh")
 def scrape_refresh(entry_team_id: str | None = None) -> dict:
+    """
+    Trigger an MCP refresh scrape for the given entry team.
+
+    Args:
+        entry_team_id: Entry team scope; defaults to configured entry team.
+
+    Returns:
+        Scraper result dict (status, counts, timing) from ``AppContext.scraper``.
+    """
     ctx = _get_ctx()
     target = ctx.resolve_entry_team_id(entry_team_id)
 
@@ -206,6 +346,10 @@ def scrape_refresh(entry_team_id: str | None = None) -> dict:
     result = ctx.scraper.run(target, mode="refresh", verbose=False, progress=progress)
     return result
 
+
+# ---------------------------------------------------------------------------
+# Entry point (local development)
+# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     import uvicorn

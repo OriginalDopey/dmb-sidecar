@@ -3,12 +3,22 @@ using DmbSidecar.Api.Models;
 
 namespace DmbSidecar.Api.Services;
 
+/// <summary>
+/// Adapts browser-scraped lineup context to the MCP lineup engine for <c>POST /lineup/analyze</c>.
+/// Parses roster pool and position eligibility from extension extras, maps bridge DTOs to API models,
+/// and builds the markdown summary shown in the Lineup Lab grid.
+/// </summary>
 public sealed class LineupAnalyzeService
 {
     private readonly McpBridgeClient _mcp;
 
+    /// <summary>Creates the service with MCP bridge client dependency.</summary>
     public LineupAnalyzeService(McpBridgeClient mcp) => _mcp = mcp;
 
+    /// <summary>
+    /// Runs lineup optimization for the active Edit Lineup page.
+    /// Returns null when slots are empty or the MCP bridge call fails.
+    /// </summary>
     public async Task<LineupAnalyzeResponse?> AnalyzeAsync(PageContext context, CancellationToken ct = default)
     {
         if (context.Slots is not { Count: > 0 })
@@ -56,6 +66,8 @@ public sealed class LineupAnalyzeService
             raw.Engine);
     }
 
+    // --- Extension extra parsing ---
+
     private static Dictionary<string, List<string>> ParseEligibility(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return [];
@@ -81,6 +93,8 @@ public sealed class LineupAnalyzeService
             return [];
         }
     }
+
+    // --- DTO mapping and summary ---
 
     private static IReadOnlyList<LineupSlotResult> MapSlots(List<McpBridgeClient.SlotDto>? slots) =>
         (slots ?? []).Select(s => new LineupSlotResult(

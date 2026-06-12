@@ -3,10 +3,16 @@ using DmbSidecar.Api.Models;
 
 namespace DmbSidecar.Api.Services.LineupExplain.Handlers;
 
+/// <summary>
+/// Last-resort handler when classification yields <see cref="LineupQuestionKind.Fallback"/>.
+/// Delegates to position assignment when one player is named; otherwise summarizes recommendation delta.
+/// </summary>
 internal sealed class FallbackHandler : ILineupExplainHandler
 {
+    /// <inheritdoc />
     public LineupQuestionKind Kind => LineupQuestionKind.Fallback;
 
+    /// <inheritdoc />
     public string Build(LineupExplainContext ctx)
     {
         var sb = new StringBuilder();

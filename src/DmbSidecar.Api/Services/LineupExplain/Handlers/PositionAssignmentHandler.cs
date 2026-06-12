@@ -5,11 +5,14 @@ namespace DmbSidecar.Api.Services.LineupExplain.Handlers;
 
 /// <summary>
 /// Explains why a player is assigned to a defensive position (RC+def at spot).
+/// Delegates to <see cref="DhAssignmentHandler"/> when the question is really about DH parking.
 /// </summary>
 internal sealed class PositionAssignmentHandler : ILineupExplainHandler
 {
+    /// <inheritdoc />
     public LineupQuestionKind Kind => LineupQuestionKind.PositionAssignment;
 
+    /// <inheritdoc />
     public string Build(LineupExplainContext ctx)
     {
         var sb = new StringBuilder();

@@ -2,6 +2,7 @@ namespace DmbSidecar.Api.Services.LineupExplain;
 
 /// <summary>
 /// Routed question families for offline Lineup Lab explain.
+/// Each value maps to an <see cref="Handlers.ILineupExplainHandler"/> implementation registered in <see cref="LineupExplainRouter"/>.
 /// </summary>
 public enum LineupQuestionKind
 {

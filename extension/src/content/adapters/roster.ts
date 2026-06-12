@@ -1,8 +1,31 @@
+/**
+ * @file Team roster page adapter — ImagineSports `/team/roster`.
+ *
+ * **Purpose:** Parses three `table.stat_table` blocks (hitters, pitchers, IR) and
+ * finance summary text into a roster `PageContext` for generic advise flows.
+ *
+ * **Message flow:** Consumed by `registry.extractPageContext` → content script →
+ * background; not called directly by messaging layer.
+ *
+ * **Dependencies:** `adapters/types.js` (`PageAdapter`), `shared/types.js` (`PageContext`,
+ * `PageSlot`).
+ */
 import type { PageAdapter } from "./types.js";
 import type { PageContext, PageSlot } from "../../shared/types.js";
 
+// --- Constants ---
+
+/** Stat table order on the roster page maps to these section labels. */
 const SECTIONS = ["batter", "pitcher", "ir"] as const;
 
+// --- Table parsing ---
+
+/**
+ * Walks roster stat tables and collects player rows with section tags.
+ *
+ * @param document - Roster page document.
+ * @returns Flat list of slots with `section` set from table index.
+ */
 function parseStatTables(document: Document): PageSlot[] {
   const players: PageSlot[] = [];
   const tables = document.querySelectorAll("table.stat_table");
@@ -48,6 +71,12 @@ function parseStatTables(document: Document): PageSlot[] {
   return players;
 }
 
+/**
+ * Extracts team, league, cap, cash, loan, and stadium lines from page body text.
+ *
+ * @param document - Roster page document.
+ * @returns Key-value map merged into `PageContext.extra`.
+ */
 function scrapeFinanceExtra(document: Document): Record<string, string> {
   const text = document.body?.innerText ?? "";
   const extra: Record<string, string> = { title: document.title };
@@ -71,16 +100,29 @@ function scrapeFinanceExtra(document: Document): Record<string, string> {
   return extra;
 }
 
+// --- Adapter export ---
+
 /**
- * Team roster page — IS uses three table.stat_table blocks (hitters, pitchers, IR).
+ * Team roster page — IS uses three `table.stat_table` blocks (hitters, pitchers, IR).
  */
 export const rosterAdapter: PageAdapter = {
   pageType: "roster",
 
+  /**
+   * @param url - Current page URL.
+   * @returns True when pathname includes `/team/roster`.
+   */
   matches(url: URL): boolean {
     return url.pathname.includes("/team/roster");
   },
 
+  /**
+   * Builds full `PageContext` for the team roster screen.
+   *
+   * @param document - Live DOM.
+   * @param url - Current location (for `curTeam` query param).
+   * @returns Roster slots plus finance metadata in `extra`.
+   */
   extract(document: Document, url: URL): PageContext {
     const curTeam = url.searchParams.get("curTeam") ?? undefined;
     const slots = parseStatTables(document);

@@ -5,11 +5,14 @@ namespace DmbSidecar.Api.Services.LineupExplain.Handlers;
 
 /// <summary>
 /// Explains batting-order slots using implementation-plan rules (OBP #1–2, RC heart #3–5).
+/// Compares current vs recommended order for a named player when available.
 /// </summary>
 internal sealed class BattingOrderHandler : ILineupExplainHandler
 {
+    /// <inheritdoc />
     public LineupQuestionKind Kind => LineupQuestionKind.BattingOrder;
 
+    /// <inheritdoc />
     public string Build(LineupExplainContext ctx)
     {
         var sb = new StringBuilder();

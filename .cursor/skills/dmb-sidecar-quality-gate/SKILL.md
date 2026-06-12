@@ -46,7 +46,7 @@ Adds coverage collection, SBOM generation, and Release build — same gates as G
 | **Scope** | Smallest correct diff; no drive-by refactors |
 | **Tests** | Behavior changes need tests in the matching layer |
 | **Explain handlers** | New question kind → enum + classifier + handler + router + tests |
-| **Comments** | XML summaries on public types; no "demo", "hackathon", "tune prose" |
+| **Comments** | Every source file: file header + documented functions (see CONTRIBUTING.md); no "demo"/"hackathon" language |
 | **Secrets** | Never commit `.env.local`, `.is_session`, real team IDs in docs |
 | **Paths** | Use `../DiamondMind` or env vars in scripts — no `/Users/...` |
 | **Extension** | Commit `extension/dist` after `npm run build` when `src/` changes |

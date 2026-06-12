@@ -5,11 +5,14 @@ namespace DmbSidecar.Api.Services.LineupExplain.Handlers;
 
 /// <summary>
 /// Compares two players at the same position (defense and bat side-by-side).
+/// Handles "why A over B" questions with recommended and current lineup context.
 /// </summary>
 internal sealed class PositionComparisonHandler : ILineupExplainHandler
 {
+    /// <inheritdoc />
     public LineupQuestionKind Kind => LineupQuestionKind.PositionComparison;
 
+    /// <inheritdoc />
     public string Build(LineupExplainContext ctx)
     {
         var sb = new StringBuilder();

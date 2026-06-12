@@ -134,9 +134,20 @@ function extractBatterRatings(document2) {
 }
 var lineupAdapter = {
   pageType: "lineup",
+  /**
+   * @param url - Current page URL.
+   * @returns True when pathname includes `/manage/edit_lineup`.
+   */
   matches(url) {
     return url.pathname.includes("/manage/edit_lineup");
   },
+  /**
+   * Builds full `PageContext` for the Edit Lineup screen.
+   *
+   * @param document - Live DOM.
+   * @param url - Current location (for `curTeam`, `lineupID` query params).
+   * @returns Structured context with slots, pool JSON, and pitcher side in `extra`.
+   */
   extract(document2, url) {
     const params = url.searchParams;
     const curTeam = params.get("curTeam") ?? void 0;
@@ -224,9 +235,20 @@ function scrapeFinanceExtra(document2) {
 }
 var rosterAdapter = {
   pageType: "roster",
+  /**
+   * @param url - Current page URL.
+   * @returns True when pathname includes `/team/roster`.
+   */
   matches(url) {
     return url.pathname.includes("/team/roster");
   },
+  /**
+   * Builds full `PageContext` for the team roster screen.
+   *
+   * @param document - Live DOM.
+   * @param url - Current location (for `curTeam` query param).
+   * @returns Roster slots plus finance metadata in `extra`.
+   */
   extract(document2, url) {
     const curTeam = url.searchParams.get("curTeam") ?? void 0;
     const slots = parseStatTables(document2);

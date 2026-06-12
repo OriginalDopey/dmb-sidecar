@@ -1,14 +1,25 @@
+// DmbSidecar.Api — ASP.NET Core composition root.
+// Wires DI, CORS (extension + localhost), API-key middleware, and minimal endpoints:
+// /health, /foundry/smoke, /advise, /lineup/analyze, /lineup/explain.
+// Called by the Chrome extension; Foundry is primary IQ with offline/MCP fallbacks.
+
 using DmbSidecar.Api.Configuration;
 using DmbSidecar.Api.Middleware;
 using DmbSidecar.Api.Models;
 using DmbSidecar.Api.Services;
 using DmbSidecar.Api.Services.LineupExplain;
 
+// --- Composition root ---
+
 var builder = WebApplication.CreateBuilder(args);
+
+// --- Configuration binding ---
 
 builder.Services.Configure<FoundryOptions>(builder.Configuration.GetSection(FoundryOptions.SectionName));
 builder.Services.Configure<McpBridgeOptions>(builder.Configuration.GetSection(McpBridgeOptions.SectionName));
 builder.Services.Configure<ApiSecurityOptions>(builder.Configuration.GetSection(ApiSecurityOptions.SectionName));
+
+// --- Service registration ---
 
 builder.Services.AddHttpClient<FoundryAgentService>();
 builder.Services.AddHttpClient<McpBridgeClient>();
@@ -17,6 +28,8 @@ builder.Services.AddSingleton<AdviseService>();
 builder.Services.AddSingleton<LineupAnalyzeService>();
 builder.Services.AddSingleton<LineupExplainRouter>();
 builder.Services.AddSingleton<LineupExplainService>();
+
+// --- CORS (Chrome extension + local dev) ---
 
 builder.Services.AddCors(options =>
 {
@@ -36,6 +49,8 @@ builder.Services.AddSwaggerGen(c => c.SwaggerDoc("v1", new() { Title = "DMB Side
 
 var app = builder.Build();
 
+// --- HTTP pipeline ---
+
 app.UseCors("Extension");
 app.UseMiddleware<ApiKeyMiddleware>();
 
@@ -44,6 +59,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// --- Minimal API endpoints ---
 
 app.MapGet("/health", async (FoundryAgentService foundry, McpBridgeClient mcp) =>
 {
@@ -100,5 +117,10 @@ app.MapPost("/lineup/explain", async (LineupExplainRequest request, LineupExplai
 
 app.Run();
 
-/// <summary>Entry point type for ASP.NET Core integration tests.</summary>
+/// <summary>
+/// ASP.NET Core host for the DMB Sidecar API.
+/// Called by the Chrome extension side panel; wires DI, CORS, API-key middleware, and minimal endpoints
+/// for health, Foundry smoke tests, general <c>/advise</c>, and Lineup Lab <c>/lineup/*</c>.
+/// Foundry is primary IQ; MCP bridge supplies cached league/team data; offline handlers backstop failures.
+/// </summary>
 public partial class Program { }

@@ -3,8 +3,15 @@ using DmbSidecar.Api.Services;
 
 namespace DmbSidecar.Api.Tests.Services;
 
+/// <summary>
+/// Unit tests for <see cref="OfflineAdviseHelper.Build"/> fallback answers when
+/// Foundry or MCP data is unavailable.
+/// </summary>
 public sealed class OfflineAdviseHelperTests
 {
+    /// <summary>
+    /// Verifies generic questions include local IQ rules content in the answer.
+    /// </summary>
     [Fact]
     public void Build_includes_question_and_page_type()
     {
@@ -23,6 +30,9 @@ public sealed class OfflineAdviseHelperTests
         answer.Should().Contain("Rules (local IQ)");
     }
 
+    /// <summary>
+    /// Verifies roster-review prompts route to the roster review builder.
+    /// </summary>
     [Fact]
     public void Build_uses_roster_review_when_question_matches()
     {

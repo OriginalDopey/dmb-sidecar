@@ -5,8 +5,14 @@ using DmbSidecar.Api.Models;
 
 namespace DmbSidecar.Api.Services;
 
+/// <summary>
+/// Deterministic roster-screen analysis for offline advise when Foundry is down.
+/// Parses scraped roster DOM into salary balance, position coverage, IR usage, and pre-season checks.
+/// Triggered when the user question matches review keywords via <see cref="WantsReview"/>.
+/// </summary>
 internal static partial class OfflineRosterReview
 {
+    /// <summary>True when the question asks for a structured roster review or screen explanation.</summary>
     public static bool WantsReview(string question) =>
         question.Contains("review", StringComparison.OrdinalIgnoreCase) ||
         question.Contains("salary balance", StringComparison.OrdinalIgnoreCase) ||
@@ -14,6 +20,9 @@ internal static partial class OfflineRosterReview
         question.Contains("ir usage", StringComparison.OrdinalIgnoreCase) ||
         question.Contains("explain this screen", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Builds a markdown roster review from scraped page context, or null when not on a roster page.
+    /// </summary>
     public static string? Build(PageContext context)
     {
         if (context.PageType != "roster" || context.Slots is not { Count: > 0 })
@@ -38,6 +47,8 @@ internal static partial class OfflineRosterReview
         var sb = new StringBuilder();
         sb.AppendLine($"**Roster review — {teamName ?? "your team"}** *(offline analysis; Foundry agent will synthesize this once wired)*");
         sb.AppendLine();
+
+        // --- Salary balance ---
 
         sb.AppendLine("**Salary balance**");
         if (total > 0)
@@ -65,6 +76,8 @@ internal static partial class OfflineRosterReview
         else if (total > 0 && hitterPay > total * 0.55m)
             sb.AppendLine($"- ⚠️ Offense-heavy: position players are {Pct(hitterPay, total)} of payroll — stars are in the lineup; pitching depth must come cheap.");
 
+        // --- Position coverage ---
+
         sb.AppendLine();
         sb.AppendLine("**Position coverage**");
         var catchers = CountPositions(hitters, "C");
@@ -80,6 +93,8 @@ internal static partial class OfflineRosterReview
         var minSalaryHitters = hitters.Count(p => SlotSalary(p) <= 500_000);
         if (minSalaryHitters >= 6)
             sb.AppendLine($"- {minSalaryHitters} hitters at or near $500K minimum — fine for platoon/IR stubs, but bench offense is thin.");
+
+        // --- IR usage ---
 
         sb.AppendLine();
         sb.AppendLine("**IR usage**");
@@ -97,6 +112,8 @@ internal static partial class OfflineRosterReview
             sb.AppendLine($"- Home: {park}. Ask Foundry IQ (once live) how this park fits your power/contact mix and whether roster construction matches the park.");
         }
 
+        // --- Pre-season checklist ---
+
         sb.AppendLine();
         sb.AppendLine("**Quick checks before Opening Day**");
         sb.AppendLine("- Confirm 4 SP + 8+ pitchers in active 25; lineups vs LHP/RHP filled; bench PH/utility set per lineup.");
@@ -107,6 +124,8 @@ internal static partial class OfflineRosterReview
 
         return sb.ToString().TrimEnd();
     }
+
+    // --- Slot helpers ---
 
     private static List<PageSlot> Slots(PageContext ctx, string section) =>
         ctx.Slots!

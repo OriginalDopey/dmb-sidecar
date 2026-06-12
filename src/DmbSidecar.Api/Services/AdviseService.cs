@@ -6,6 +6,12 @@ using DmbSidecar.Api.Utilities;
 
 namespace DmbSidecar.Api.Services;
 
+/// <summary>
+/// Orchestrates general front-office advice for <c>POST /advise</c>.
+/// Enriches the user question with MCP team/league snapshots (when fresh), builds a Foundry prompt,
+/// and falls back to local IQ + <see cref="OfflineAdviseHelper"/> when the agent is unavailable.
+/// Callers: Chrome extension side panel via minimal API in <c>Program.cs</c>.
+/// </summary>
 public sealed class AdviseService
 {
     private readonly FoundryAgentService _foundry;
@@ -13,6 +19,7 @@ public sealed class AdviseService
     private readonly LocalIqService _localIq;
     private readonly ILogger<AdviseService> _log;
 
+    /// <summary>Creates the service with Foundry, MCP, and offline IQ dependencies.</summary>
     public AdviseService(
         FoundryAgentService foundry,
         McpBridgeClient mcp,
@@ -25,6 +32,10 @@ public sealed class AdviseService
         _log = log;
     }
 
+    /// <summary>
+    /// Produces an answer with citations and optional warnings.
+    /// MCP data is filtered against the browser DOM to avoid stale-cache advice.
+    /// </summary>
     public async Task<AdviseResponse> AdviseAsync(AdviseRequest request, CancellationToken ct = default)
     {
         var sw = Stopwatch.StartNew();
@@ -35,6 +46,8 @@ public sealed class AdviseService
         string? leagueSummary = null;
 
         var entryTeam = string.IsNullOrWhiteSpace(request.Context.CurTeam) ? null : request.Context.CurTeam;
+
+        // --- MCP enrichment ---
 
         if (await _mcp.IsHealthyAsync(ct))
         {
@@ -58,6 +71,8 @@ public sealed class AdviseService
         var prompt = BuildPrompt(request, teamSnapshot, leagueSummary);
         string answer;
 
+        // --- Foundry invoke with offline fallback ---
+
         try
         {
             answer = await _foundry.InvokeAsync(prompt, ct);
@@ -80,6 +95,8 @@ public sealed class AdviseService
             sw.ElapsedMilliseconds,
             warnings.Count > 0 ? string.Join(" ", warnings) : null);
     }
+
+    // --- Prompt construction ---
 
     private static string BuildPrompt(AdviseRequest request, string? teamSnapshot, string? leagueSummary)
     {

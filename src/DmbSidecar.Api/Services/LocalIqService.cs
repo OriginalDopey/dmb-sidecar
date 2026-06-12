@@ -3,13 +3,16 @@ using System.Text.RegularExpressions;
 namespace DmbSidecar.Api.Services;
 
 /// <summary>
-/// Offline keyword search over iq-sources/ markdown when Foundry is unavailable.
+/// Offline keyword search over <c>iq-sources/</c> markdown when Foundry is unavailable.
+/// Scores paragraphs by term overlap with the user question; used by advise and lineup explain fallbacks.
+/// Repository root is resolved relative to the API content root (two levels up from the project folder).
 /// </summary>
 public sealed partial class LocalIqService
 {
     private readonly string _iqRoot;
     private readonly ILogger<LocalIqService> _log;
 
+    /// <summary>Locates the iq-sources directory at repo root.</summary>
     public LocalIqService(IWebHostEnvironment env, ILogger<LocalIqService> log)
     {
         _log = log;
@@ -17,8 +20,13 @@ public sealed partial class LocalIqService
         _iqRoot = Path.Combine(repoRoot, "iq-sources");
     }
 
+    /// <summary>True when the iq-sources folder exists on disk.</summary>
     public bool IsAvailable => Directory.Exists(_iqRoot);
 
+    /// <summary>
+    /// Returns up to <paramref name="maxSnippets"/> best-matching paragraphs from IQ markdown files.
+    /// Empty when iq-sources is missing or no terms could be extracted from the question.
+    /// </summary>
     public IReadOnlyList<string> Search(string question, int maxSnippets = 3)
     {
         if (!IsAvailable)
@@ -51,6 +59,8 @@ public sealed partial class LocalIqService
             .Select(h => h.Snippet)
             .ToList();
     }
+
+    // --- Term extraction ---
 
     private static List<string> ExtractTerms(string question)
     {

@@ -3,11 +3,17 @@ using DmbSidecar.Api.Models;
 
 namespace DmbSidecar.Api.Services.LineupExplain;
 
+/// <summary>
+/// Shared parsing and lookup helpers for lineup explain classification and handlers.
+/// Resolves player last names, positions, batting-order slots, and lineup slot lookups.
+/// </summary>
 internal static partial class LineupExplainHelpers
 {
+    /// <summary>Returns the surname portion of a "Last, First" display name.</summary>
     public static string Norm(string name) =>
         name.Split(',')[0].Trim();
 
+    /// <summary>Formats pitcher handedness for display (e.g. "vs LHP").</summary>
     public static string SideLabel(string pitcherSide)
     {
         if (pitcherSide.StartsWith("vs ", StringComparison.OrdinalIgnoreCase))
@@ -17,6 +23,7 @@ internal static partial class LineupExplainHelpers
             : $"vs {pitcherSide}";
     }
 
+    /// <summary>Finds a slot by normalized player name, optionally constrained to a position.</summary>
     public static LineupSlotResult? FindSlot(
         IReadOnlyList<LineupSlotResult> slots,
         string normPlayer,
@@ -32,6 +39,7 @@ internal static partial class LineupExplainHelpers
         return slots.FirstOrDefault(s => Norm(s.Player) == normPlayer);
     }
 
+    /// <summary>Matches last names from lineup and roster context against the question text.</summary>
     public static List<string> ExtractPlayersMentioned(
         string question,
         PageContext context,
@@ -55,9 +63,11 @@ internal static partial class LineupExplainHelpers
         return found;
     }
 
+    /// <summary>Extracts a formal "Last, First" name when present in the question.</summary>
     public static string? ExtractPlayerFromFormalName(string question) =>
         FormalPlayerName().Match(question) is { Success: true } m ? m.Groups[1].Value.Trim() : null;
 
+    /// <summary>Returns the first defensive position token found in the question.</summary>
     public static string? TryExtractPosition(string question)
     {
         foreach (var pos in new[] { "DH", "1B", "2B", "3B", "SS", "LF", "CF", "RF" })
@@ -70,6 +80,7 @@ internal static partial class LineupExplainHelpers
         return null;
     }
 
+    /// <summary>Infers batting-order slot 1–9 from hash notation or role keywords (leadoff, cleanup).</summary>
     public static int? TryExtractBattingOrder(string q)
     {
         var lower = q.ToLowerInvariant();
@@ -84,6 +95,7 @@ internal static partial class LineupExplainHelpers
         return null;
     }
 
+    /// <summary>True when the question references DH or designated hitter.</summary>
     public static bool IsDhQuestion(string question) =>
         Regex.IsMatch(question, @"\bDH\b", RegexOptions.IgnoreCase)
         || question.Contains("designated hitter", StringComparison.OrdinalIgnoreCase);

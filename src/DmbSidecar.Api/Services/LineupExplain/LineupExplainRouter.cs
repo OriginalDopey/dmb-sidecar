@@ -6,11 +6,13 @@ namespace DmbSidecar.Api.Services.LineupExplain;
 /// <summary>
 /// Routes lineup explain questions to typed handlers after entity extraction.
 /// Single entry point for offline explain; Foundry uses <see cref="Classify"/> for prompt context.
+/// Handlers are registered by <see cref="LineupQuestionKind"/> in the constructor.
 /// </summary>
 public sealed class LineupExplainRouter
 {
     private readonly IReadOnlyDictionary<LineupQuestionKind, ILineupExplainHandler> _handlers;
 
+    /// <summary>Registers all lineup explain handlers keyed by question kind.</summary>
     public LineupExplainRouter()
     {
         ILineupExplainHandler[] all =
@@ -32,7 +34,7 @@ public sealed class LineupExplainRouter
         LineupAnalyzeResponse lineup) =>
         LineupQuestionClassifier.Classify(question, context, lineup);
 
-    /// <summary>Builds an offline answer for a pre-classified intent.</summary>
+    /// <summary>Builds an offline answer for a pre-classified intent using the matching handler.</summary>
     public string Answer(LineupExplainContext context)
     {
         var handler = _handlers.TryGetValue(context.Intent.Kind, out var h)
@@ -41,7 +43,7 @@ public sealed class LineupExplainRouter
         return handler.Build(context);
     }
 
-    /// <summary>Classifies and answers in one call (offline explain path).</summary>
+    /// <summary>Classifies and answers in one call (convenience for offline explain path).</summary>
     public (LineupQuestionIntent Intent, string Answer) Route(
         string question,
         PageContext context,

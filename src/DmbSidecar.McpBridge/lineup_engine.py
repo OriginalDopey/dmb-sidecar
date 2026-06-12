@@ -1,4 +1,27 @@
-"""Lineup analysis vs LHP/RHP using IS SearchResults CSV player pool."""
+"""
+Lineup analysis engine for Diamond Mind Baseball sidecar.
+
+Compares a user's current lineup against an optimal nine-man assignment for
+the active pitcher handedness (vs LHP / vs RHP). Scoring combines platoon-
+adjusted RC/600 with defensive run value derived from ImagineSports SearchResults
+fielding grades and error ratings.
+
+Data sources:
+
+    data/player-pool/hitters-fielding.csv
+        Primary pool: positions, salary, RC600, OPS splits, fielding bands.
+    data/player-pool/hitters-splits.csv
+        Supplemental OBP/SLG/HRF splits and injury/run metadata.
+
+When ``lineup_config`` is available, batting order follows DiamondMind
+``dmb_config`` implementation-plan rules; otherwise a local RC+def fallback
+assigns positions and orders by OBP/RC heuristics.
+
+Public API:
+
+    analyze(...)
+        Main entry point consumed by ``app.lineup_analyze``.
+"""
 
 from __future__ import annotations
 
@@ -7,30 +30,63 @@ import re
 from itertools import combinations
 from pathlib import Path
 
+# ---------------------------------------------------------------------------
+# Constants & module-level cache
+# ---------------------------------------------------------------------------
+
 RANGE_RUNS = {"Ex": 10, "Vg": 7, "Av": 4, "Fr": 1, "Pr": -2}
+"""Approximate runs saved per range grade band (Standard Era)."""
+
 LINEUP_POSITIONS = ("C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH")
+"""Defensive slots considered during assignment (DH is bat-only)."""
+
 RHP_PCT, LHP_PCT = 0.70, 0.30
+"""Typical RHP/LHP exposure weights (informational; not used in scoring)."""
 
 _pool: dict[str, dict] | None = None
+"""In-memory player pool loaded once per process from CSV exports."""
+
+
+# ---------------------------------------------------------------------------
+# Path & name normalization
+# ---------------------------------------------------------------------------
 
 
 def _repo_root() -> Path:
+    """Return the dmb-sidecar repository root (parent of ``src/``)."""
     return Path(__file__).resolve().parents[2]
 
 
 def _norm_name(raw: str) -> str:
+    """
+    Normalize a player name for pool lookup.
+
+    Strips trailing bats-hand suffixes (``L``/``R``/``S``) and injury markers
+    so roster strings match SearchResults CSV keys.
+    """
     s = re.sub(r"\s+", " ", (raw or "").strip())
     s = re.sub(r"\s+[LRS]\s*$", "", s, flags=re.I)
     s = re.sub(r"\s+INJ.*$", "", s, flags=re.I)
     return s.strip()
 
 
+# ---------------------------------------------------------------------------
+# CSV parsing helpers
+# ---------------------------------------------------------------------------
+
+
 def _parse_money(raw: str) -> int:
+    """Parse a salary string (e.g. ``$8,500,000``) to integer dollars."""
     digits = re.sub(r"[^\d]", "", raw or "")
     return int(digits) if digits else 0
 
 
 def _parse_fld(cell: str) -> tuple[str | None, int | None]:
+    """
+    Parse a fielding cell such as ``Vg / 139`` into range grade and error rating.
+
+    Returns ``(None, None)`` for empty or non-matching cells.
+    """
     if not cell or cell in ("&nbsp;", ""):
         return None, None
     m = re.match(r"([A-Za-z]{2})\s*/\s*(\d+)", cell.strip())
@@ -39,7 +95,18 @@ def _parse_fld(cell: str) -> tuple[str | None, int | None]:
     return m.group(1), int(m.group(2))
 
 
+# ---------------------------------------------------------------------------
+# Defensive value computation
+# ---------------------------------------------------------------------------
+
+
 def _def_runs(range_grade: str | None, err: int | None, pos: str) -> float:
+    """
+    Estimate defensive run contribution at a position.
+
+    Combines range grade with error rating using position-specific error
+    scaling. Catcher range is heavily discounted per DMB community research.
+    """
     if not range_grade:
         return 0.0
     base = RANGE_RUNS.get(range_grade, 0)
@@ -52,7 +119,19 @@ def _def_runs(range_grade: str | None, err: int | None, pos: str) -> float:
     return round(base, 1)
 
 
+# ---------------------------------------------------------------------------
+# Player pool loading
+# ---------------------------------------------------------------------------
+
+
 def _load_pool() -> dict[str, dict]:
+    """
+    Load and cache the hitter player pool from CSV exports.
+
+    Merges fielding and split files keyed by normalized player name. Safe to
+    call repeatedly; the module-level ``_pool`` cache is populated on first
+    successful read.
+    """
     global _pool
     if _pool is not None:
         return _pool
@@ -111,8 +190,19 @@ def _load_pool() -> dict[str, dict]:
     return players
 
 
+# ---------------------------------------------------------------------------
+# Platoon / side-specific offensive stats
+# ---------------------------------------------------------------------------
+
+
 def _rc_for_side(player: dict, side: str) -> float:
-    """side: 'vs_rhp' or 'vs_lhp' (batter perspective)."""
+    """
+    Scale baseline RC/600 by platoon OPS for the batter's perspective.
+
+    Args:
+        player: Pool player dict with ``rc600``, ``ops_l``, ``ops_r``.
+        side: ``vs_rhp`` or ``vs_lhp`` (who the lineup faces).
+    """
     rc = player.get("rc600") or 0
     ops_l, ops_r = player.get("ops_l") or 0, player.get("ops_r") or 0
     mid = (ops_l + ops_r) / 2 if (ops_l + ops_r) else 0
@@ -124,24 +214,32 @@ def _rc_for_side(player: dict, side: str) -> float:
 
 
 def _obp_for_side(player: dict, side: str) -> float:
+    """Return OBP for the given pitcher side."""
     if side == "vs_rhp":
         return player.get("obp_r") or 0
     return player.get("obp_l") or 0
 
 
 def _ops_for_side(player: dict, side: str) -> float:
+    """Return OPS for the given pitcher side."""
     if side == "vs_rhp":
         return player.get("ops_r") or 0
     return player.get("ops_l") or 0
 
 
 def _hrf_for_side(player: dict, side: str) -> float:
+    """Return home-run factor for the given pitcher side."""
     if side == "vs_rhp":
         return player.get("hrf_r") or player.get("hrf") or 0
     return player.get("hrf_l") or player.get("hrf") or 0
 
 
 def _slot_stats(player: dict | None, pos: str, side: str) -> dict:
+    """
+    Build display stats for a lineup slot (OPS, OBP, HRF, fielding, platoon).
+
+    Returns zero/empty defaults when ``player`` is ``None``.
+    """
     if not player:
         return {
             "ops": 0.0,
@@ -166,7 +264,18 @@ def _slot_stats(player: dict | None, pos: str, side: str) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# Position eligibility & scoring
+# ---------------------------------------------------------------------------
+
+
 def _merged_positions(player: dict, eligibility: dict[str, list[str]] | None) -> list[str]:
+    """
+    Merge CSV positions with optional roster-page eligibility overrides.
+
+    Overrides are keyed by player name and add extra positions (e.g. utility
+    eligibility not present in the static pool export).
+    """
     positions = list(player.get("positions", []))
     if not eligibility:
         return positions
@@ -178,12 +287,14 @@ def _merged_positions(player: dict, eligibility: dict[str, list[str]] | None) ->
 
 
 def _can_play(player: dict, pos: str, eligibility: dict[str, list[str]] | None = None) -> bool:
+    """Return whether ``player`` may occupy ``pos`` (DH always allowed)."""
     if pos == "DH":
         return True
     return pos in _merged_positions(player, eligibility)
 
 
 def _score_at_pos(player: dict, pos: str, side: str) -> float:
+    """Combined offensive (RC) and defensive run value at a position."""
     rc = _rc_for_side(player, side)
     fld = player.get("fielding", {}).get(pos, {})
     d = _def_runs(fld.get("range"), fld.get("err"), pos) if pos != "DH" else 0
@@ -191,6 +302,7 @@ def _score_at_pos(player: dict, pos: str, side: str) -> float:
 
 
 def _slot_dict(player: dict, pos: str, side: str) -> dict:
+    """Build a full slot result dict for ``player`` at ``pos``."""
     sc = _score_at_pos(player, pos, side)
     fld = player.get("fielding", {}).get(pos, {}) if pos != "DH" else {}
     return {
@@ -204,10 +316,20 @@ def _slot_dict(player: dict, pos: str, side: str) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# Lineup assignment (position optimization)
+# ---------------------------------------------------------------------------
+
+
 def _best_assignment(
     players: list[dict], side: str, eligibility: dict[str, list[str]] | None = None
 ) -> list[dict]:
-    """Exhaustive assignment for up to 9 players × 9 positions."""
+    """
+    Find the highest-scoring assignment of exactly ``len(players)`` to positions.
+
+    Uses depth-first search over positions; intended for nine players and nine
+    slots (Classic DH lineup).
+    """
     positions = list(LINEUP_POSITIONS)
     best_slots: list[dict] = []
     best_score = -1.0
@@ -237,7 +359,13 @@ def _best_assignment(
 def _assign_lineup(
     roster_names: list[str], side: str, eligibility: dict[str, list[str]] | None = None
 ) -> tuple[list[dict], str]:
-    """Returns (slots, engine tag: 'dmb-config' | 'rc-def-fallback')."""
+    """
+    Recommend a full lineup for ``roster_names`` facing ``side``.
+
+    Returns:
+        Tuple of (ordered slot list, engine tag). Engine is ``dmb-config`` when
+        DiamondMind ``order_lineup`` rules apply, else ``rc-def-fallback``.
+    """
     pool = _load_pool()
     available = []
     for n in roster_names:
@@ -269,7 +397,12 @@ def _assign_lineup(
 def _best_positioned_nine(
     available: list[dict], side: str, eligibility: dict[str, list[str]] | None = None
 ) -> list[dict]:
-    """Best RC+def assignment for 9 hitters (exactly 9 or best subset from larger pool)."""
+    """
+    Select the best nine-man subset and assign positions for maximum RC+def.
+
+    When more than nine pool matches exist, evaluates combinations of up to
+    thirteen top single-position scores before running full assignment.
+    """
     if len(available) == 9:
         return _best_assignment(available, side, eligibility)
 
@@ -299,7 +432,11 @@ def _best_positioned_nine(
 def _greedy_fill(
     available: list[dict], side: str, eligibility: dict[str, list[str]] | None = None
 ) -> list[dict]:
-    """Fallback when fewer than 9 pool matches or assignment fails."""
+    """
+    Greedy per-position fill when exhaustive assignment is impractical.
+
+    Used when fewer than nine pool matches exist or as a fallback path.
+    """
     used: set[str] = set()
     slots: list[dict] = []
     for pos in LINEUP_POSITIONS:
@@ -318,7 +455,18 @@ def _greedy_fill(
     return slots
 
 
+# ---------------------------------------------------------------------------
+# Batting order (fallback heuristic)
+# ---------------------------------------------------------------------------
+
+
 def _order_batting(slots: list[dict], side: str) -> list[dict]:
+    """
+    Assign batting order using OBP leadoff/table-setter and RC heart heuristic.
+
+    Not used when ``lineup_config.order_assigned_lineup`` succeeds; retained
+    for ``rc-def-fallback`` engine path.
+    """
     pool = _load_pool()
     if not slots:
         return slots
@@ -343,7 +491,17 @@ def _order_batting(slots: list[dict], side: str) -> list[dict]:
     return out
 
 
+# ---------------------------------------------------------------------------
+# Current lineup normalization
+# ---------------------------------------------------------------------------
+
+
 def _match_current(current: list[dict], side: str) -> list[dict]:
+    """
+    Enrich UI-provided current lineup slots with pool stats and totals.
+
+    Accepts ``playerName`` or ``player`` keys from the browser extension payload.
+    """
     pool = _load_pool()
     out = []
     for slot in current:
@@ -369,6 +527,11 @@ def _match_current(current: list[dict], side: str) -> list[dict]:
     return out
 
 
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+
 def analyze(
     *,
     pitcher_side: str,
@@ -378,8 +541,18 @@ def analyze(
     position_eligibility: dict[str, list[str]] | None = None,
 ) -> dict:
     """
-    pitcher_side: 'rhp' or 'lhp' (who the lineup faces).
-    Returns comparison + chart data.
+    Compare current vs recommended lineup for the active pitcher handedness.
+
+    Args:
+        pitcher_side: ``rhp``, ``lhp``, or synonyms (``right``, ``vs_rhp``, …).
+        current_lineup: Slots from the edit-lineup page (order, position, name).
+        roster_names: Full hitter roster for recommendation scope.
+        lineup_name: Display label (e.g. ``Primary vs. LHP``).
+        position_eligibility: Optional per-player extra positions from the page.
+
+    Returns:
+        Dict with ``currentLineup``, ``recommendedLineup``, ``delta``, ``swaps``,
+        ``notes``, ``chart``, ``engine``, and related metadata for the C# API.
     """
     side = "vs_rhp" if pitcher_side.lower() in ("rhp", "vs_rhp", "right") else "vs_lhp"
     label = "vs RHP" if side == "vs_rhp" else "vs LHP"

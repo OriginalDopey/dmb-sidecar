@@ -3,8 +3,15 @@ using DmbSidecar.Api.Services;
 
 namespace DmbSidecar.Api.Tests.Services;
 
+/// <summary>
+/// Unit tests for <see cref="OfflineRosterReview"/> prompt detection and
+/// roster-page summary generation used in offline advise mode.
+/// </summary>
 public sealed class OfflineRosterReviewTests
 {
+    /// <summary>
+    /// Verifies common roster-review phrasing is detected by <see cref="OfflineRosterReview.WantsReview"/>.
+    /// </summary>
     [Theory]
     [InlineData("Review this roster for salary balance")]
     [InlineData("Explain this screen")]
@@ -12,6 +19,9 @@ public sealed class OfflineRosterReviewTests
     public void WantsReview_detects_roster_prompts(string question) =>
         OfflineRosterReview.WantsReview(question).Should().BeTrue();
 
+    /// <summary>
+    /// Verifies non-roster page types do not produce a roster review block.
+    /// </summary>
     [Fact]
     public void Build_returns_null_for_non_roster_page()
     {
@@ -19,6 +29,9 @@ public sealed class OfflineRosterReviewTests
         OfflineRosterReview.Build(context).Should().BeNull();
     }
 
+    /// <summary>
+    /// Verifies roster pages with slots and metadata produce a non-empty summary.
+    /// </summary>
     [Fact]
     public void Build_returns_summary_for_roster_page()
     {

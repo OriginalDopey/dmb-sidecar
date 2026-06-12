@@ -1,6 +1,26 @@
+/**
+ * @file Content script — DOM bridge on ImagineSports pages.
+ *
+ * **Purpose:** Scrapes page context via registered adapters and publishes updates
+ * when the user navigates. Responds to on-demand context requests from the
+ * service worker.
+ *
+ * **Message flow:**
+ * - Outbound: `PAGE_CONTEXT` (on load and URL change) → background
+ * - Inbound: `GET_PAGE_CONTEXT` → synchronous `sendResponse` with `PageContext`
+ *
+ * **Dependencies:** `adapters/registry.js` (`extractPageContext`), `shared/types.js`.
+ */
 import { extractPageContext } from "./adapters/registry.js";
 import type { SidecarMessage } from "../shared/types.js";
 
+// --- Context publishing ---
+
+/**
+ * Extracts current page context and sends `PAGE_CONTEXT` to the service worker.
+ *
+ * Failures are swallowed when the side panel or worker is not yet listening.
+ */
 function publishContext(): void {
   const context = extractPageContext(document, window.location.href);
   const msg: SidecarMessage = { type: "PAGE_CONTEXT", context };
@@ -8,6 +28,8 @@ function publishContext(): void {
     // side panel / service worker may not be ready
   });
 }
+
+// --- Messaging ---
 
 chrome.runtime.onMessage.addListener((message: SidecarMessage, _sender, sendResponse) => {
   if (message.type === "GET_PAGE_CONTEXT") {
@@ -17,7 +39,8 @@ chrome.runtime.onMessage.addListener((message: SidecarMessage, _sender, sendResp
   return false;
 });
 
-// Initial + SPA-ish navigation
+// --- Navigation detection ---
+
 publishContext();
 let lastUrl = location.href;
 new MutationObserver(() => {

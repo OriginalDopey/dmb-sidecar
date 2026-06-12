@@ -4,11 +4,18 @@ using DmbSidecar.Api.Tests.Fixtures;
 
 namespace DmbSidecar.Api.Tests.LineupExplain;
 
+/// <summary>
+/// Unit tests for <see cref="LineupQuestionClassifier"/> natural-language
+/// intent detection (DH, batting order, position assignment, comparisons).
+/// </summary>
 public sealed class LineupQuestionClassifierTests
 {
     private readonly PageContext _context = LineupTestFixtures.DemoContext;
     private readonly LineupAnalyzeResponse _lineup = LineupTestFixtures.DemoAnalysis;
 
+    /// <summary>
+    /// Verifies recommendation-summary phrasing maps to <see cref="LineupQuestionKind.RecommendationSummary"/>.
+    /// </summary>
     [Theory]
     [InlineData("Explain the main differences between my lineup and the recommendation.", LineupQuestionKind.RecommendationSummary)]
     [InlineData("What changed in the recommendation?", LineupQuestionKind.RecommendationSummary)]
@@ -18,6 +25,9 @@ public sealed class LineupQuestionClassifierTests
         intent.Kind.Should().Be(expected);
     }
 
+    /// <summary>
+    /// Verifies DH-related questions classify as <see cref="LineupQuestionKind.DhAssignment"/>.
+    /// </summary>
     [Theory]
     [InlineData("Why not Cobb at DH?")]
     [InlineData("Why not Cobb or Ruth at DH?")]
@@ -29,6 +39,9 @@ public sealed class LineupQuestionClassifierTests
         intent.Players.Should().NotBeEmpty();
     }
 
+    /// <summary>
+    /// Verifies batting-order questions extract the target slot number.
+    /// </summary>
     [Theory]
     [InlineData("Why bat Ruth at #4?", 4)]
     [InlineData("Why is Cobb leadoff?", 1)]
@@ -40,6 +53,9 @@ public sealed class LineupQuestionClassifierTests
         intent.BattingOrder.Should().Be(expectedSlot);
     }
 
+    /// <summary>
+    /// Verifies single-player position questions extract player and position.
+    /// </summary>
     [Fact]
     public void Classify_position_assignment()
     {
@@ -49,6 +65,9 @@ public sealed class LineupQuestionClassifierTests
         intent.Position.Should().Be("SS");
     }
 
+    /// <summary>
+    /// Verifies A-over-B position comparisons extract both players and position.
+    /// </summary>
     [Fact]
     public void Classify_position_comparison()
     {

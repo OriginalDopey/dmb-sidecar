@@ -4,11 +4,21 @@ using Microsoft.Extensions.Configuration;
 
 namespace DmbSidecar.Api.Tests.Integration;
 
-/// <summary>Test host for ASP.NET Core integration tests with deterministic API key.</summary>
+/// <summary>
+/// Test host factory for ASP.NET Core integration tests.
+/// Configures a deterministic API key, disables Foundry, and points the MCP
+/// bridge at an unreachable URL so tests control external dependencies.
+/// </summary>
 public sealed class SidecarWebApplicationFactory : WebApplicationFactory<Program>
 {
+    /// <summary>
+    /// API key injected into test requests via the <c>X-Api-Key</c> header.
+    /// </summary>
     public const string TestApiKey = "test-api-key-ci";
 
+    /// <summary>
+    /// Overrides application configuration for isolated, deterministic tests.
+    /// </summary>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");

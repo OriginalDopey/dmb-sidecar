@@ -11,8 +11,9 @@ using Microsoft.Extensions.Options;
 namespace DmbSidecar.Api.Services;
 
 /// <summary>
-/// Calls Microsoft Foundry agent via OpenAI-compatible Responses API.
-/// Same pattern as ~/computing-history/agent.py (agent_reference in body).
+/// HTTP client for Microsoft Foundry agents via the OpenAI-compatible Responses API.
+/// Uses <see cref="DefaultAzureCredential"/> for bearer tokens; same agent_reference body pattern as the Python reference client.
+/// Callers: <see cref="AdviseService"/>, <see cref="LineupExplainService"/>, and the <c>/foundry/smoke</c> probe.
 /// </summary>
 public sealed class FoundryAgentService
 {
@@ -27,6 +28,7 @@ public sealed class FoundryAgentService
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
+    /// <summary>Creates the service with typed HTTP client and Foundry configuration.</summary>
     public FoundryAgentService(
         HttpClient http,
         IOptions<FoundryOptions> options,
@@ -38,10 +40,15 @@ public sealed class FoundryAgentService
         _log = log;
     }
 
+    /// <summary>True when either project or responses endpoint is configured.</summary>
     public bool IsConfigured =>
         !string.IsNullOrWhiteSpace(_options.ProjectEndpoint) ||
         !string.IsNullOrWhiteSpace(_options.ResponsesEndpoint);
 
+    /// <summary>
+    /// Sends a single user message to the configured Foundry agent and returns extracted output text.
+    /// Throws when not configured or when the HTTP response is non-success.
+    /// </summary>
     public async Task<string> InvokeAsync(string userMessage, CancellationToken ct = default)
     {
         if (!IsConfigured)
@@ -91,6 +98,8 @@ public sealed class FoundryAgentService
 
         return ExtractOutputText(raw);
     }
+
+    // --- Response parsing ---
 
     private static string ExtractOutputText(string raw)
     {

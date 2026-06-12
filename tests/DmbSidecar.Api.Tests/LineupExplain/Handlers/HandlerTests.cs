@@ -4,11 +4,22 @@ using DmbSidecar.Api.Tests.Fixtures;
 
 namespace DmbSidecar.Api.Tests.LineupExplain.Handlers;
 
+/// <summary>
+/// Unit tests for primary lineup explain handlers:
+/// <see cref="DhAssignmentHandler"/>, <see cref="PositionAssignmentHandler"/>,
+/// and <see cref="RecommendationSummaryHandler"/>.
+/// </summary>
 public sealed class HandlerTests
 {
+    /// <summary>
+    /// Builds a <see cref="LineupExplainContext"/> for handler unit tests.
+    /// </summary>
     private static LineupExplainContext Ctx(string question, LineupQuestionIntent intent) =>
         new(question, intent, LineupTestFixtures.DemoContext, LineupTestFixtures.DemoAnalysis, []);
 
+    /// <summary>
+    /// Verifies DH assignment answers mention bat-only role and the named player.
+    /// </summary>
     [Fact]
     public void DhAssignmentHandler_mentions_defense_recovery()
     {
@@ -24,6 +35,9 @@ public sealed class HandlerTests
         answer.Should().Contain("Cobb");
     }
 
+    /// <summary>
+    /// Verifies position assignment answers reference the player and position.
+    /// </summary>
     [Fact]
     public void PositionAssignmentHandler_compares_mackanin_ss()
     {
@@ -39,6 +53,9 @@ public sealed class HandlerTests
         answer.Should().Contain("SS");
     }
 
+    /// <summary>
+    /// Verifies recommendation summary answers include delta and swap positions.
+    /// </summary>
     [Fact]
     public void RecommendationSummaryHandler_lists_swaps()
     {

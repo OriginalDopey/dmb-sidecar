@@ -1,5 +1,11 @@
 namespace DmbSidecar.Api.Models;
 
+/// <summary>
+/// Request/response contracts for general front-office advice and health probes.
+/// Scraped page context travels with every call from the Chrome extension;
+/// <see cref="AdviseResponse"/> is the shared answer envelope for both <c>/advise</c> and <c>/lineup/explain</c>.
+/// </summary>
+
 /// <summary>One scraped row from an ImagineSports page (lineup slot or roster line).</summary>
 public sealed record PageSlot(
     int Order,
@@ -26,6 +32,7 @@ public sealed record AdviseRequest(
     PageContext Context
 );
 
+/// <summary>Provenance line shown in the side panel citations list.</summary>
 public sealed record Citation(
     string Source,
     string Label,
@@ -44,6 +51,7 @@ public sealed record AdviseResponse(
     string? QuestionKind = null
 );
 
+/// <summary>Aggregate readiness report for <c>GET /health</c>.</summary>
 public sealed record HealthResponse(
     string Status,
     bool FoundryConfigured,

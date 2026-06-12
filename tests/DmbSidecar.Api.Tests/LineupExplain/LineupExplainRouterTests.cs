@@ -3,10 +3,17 @@ using DmbSidecar.Api.Tests.Fixtures;
 
 namespace DmbSidecar.Api.Tests.LineupExplain;
 
+/// <summary>
+/// Unit tests for <see cref="LineupExplainRouter"/> end-to-end routing from
+/// question text to classified intent and handler-generated answers.
+/// </summary>
 public sealed class LineupExplainRouterTests
 {
     private readonly LineupExplainRouter _router = new();
 
+    /// <summary>
+    /// Verifies known question patterns route to the expected kind with a non-empty answer.
+    /// </summary>
     [Theory]
     [InlineData("Why not Cobb at DH?", LineupQuestionKind.DhAssignment)]
     [InlineData("Why Mackanin at SS?", LineupQuestionKind.PositionAssignment)]
@@ -24,6 +31,9 @@ public sealed class LineupExplainRouterTests
         answer.Should().NotBeNullOrWhiteSpace();
     }
 
+    /// <summary>
+    /// Verifies <see cref="LineupExplainRouter.Answer"/> matches the answer from <see cref="LineupExplainRouter.Route"/>.
+    /// </summary>
     [Fact]
     public void Answer_uses_same_handler_as_route()
     {

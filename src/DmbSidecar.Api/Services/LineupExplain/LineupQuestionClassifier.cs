@@ -3,11 +3,16 @@ using DmbSidecar.Api.Models;
 namespace DmbSidecar.Api.Services.LineupExplain;
 
 /// <summary>
-/// Maps free-text lineup questions to a handler kind + extracted entities.
-/// Maps free-text questions to handler kinds and extracted entities.
+/// Maps free-text lineup questions to a handler kind and extracted entities.
+/// Rule-based classifier: keyword patterns and player/position extraction drive handler selection.
+/// Called by <see cref="LineupExplainRouter.Classify"/> before Foundry or offline routing.
 /// </summary>
 internal static class LineupQuestionClassifier
 {
+    /// <summary>
+    /// Classifies the question and extracts players, position, batting-order slot, and comparison target.
+    /// Falls through to <see cref="LineupQuestionKind.Fallback"/> when no pattern matches confidently.
+    /// </summary>
     public static LineupQuestionIntent Classify(
         string question,
         PageContext context,
@@ -40,6 +45,8 @@ internal static class LineupQuestionClassifier
 
         return new LineupQuestionIntent(LineupQuestionKind.Fallback, question, players, position, order, compareTo);
     }
+
+    // --- Pattern matchers ---
 
     private static bool IsRecommendationSummary(string q, IReadOnlyList<string> players) =>
         q.Contains("explain") && (q.Contains("difference") || q.Contains("recommend") || q.Contains("main") || q.Contains("change"))

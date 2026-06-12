@@ -3,8 +3,17 @@ using DmbSidecar.Api.Models;
 
 namespace DmbSidecar.Api.Services;
 
+/// <summary>
+/// Composes a structured offline answer when Foundry invocation fails in <see cref="AdviseService"/>.
+/// Prefers a full roster review when the question asks for one; otherwise emits compact roster,
+/// league standings snippets, and a single local IQ rules cite.
+/// </summary>
 internal static class OfflineAdviseHelper
 {
+    /// <summary>
+    /// Builds markdown answer text from page context, optional MCP blocks, IQ snippets, and the Foundry error.
+    /// Does not include stale MCP roster text (filtered upstream).
+    /// </summary>
     public static string Build(
         AdviseRequest request,
         string? teamSnapshot,

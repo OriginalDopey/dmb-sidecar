@@ -29,6 +29,19 @@
 5. Add tests in `tests/DmbSidecar.Api.Tests/LineupExplain/`
 6. Optional: prompt chip in `extension/src/sidepanel/sidepanel.ts`
 
+## Code documentation (required)
+
+Every source file must include:
+
+| Layer | File header | Functions / types |
+|-------|-------------|-------------------|
+| TypeScript | `/** @file ... */` — purpose, message flow, dependencies | JSDoc on every function; `// --- Section ---` in large modules |
+| C# | `/// <summary>` on namespace types or top-of-file comment in `Program.cs` | XML docs on public/internal types and members |
+| Python | Module docstring | Docstrings on functions/classes; `# --- Section ---` in large modules |
+| Tests | File summary of what is under test | Class/method docs describing scenario |
+
+Explain **why** and contracts, not obvious syntax. See `sidepanel.ts` and `LineupExplainRouter.cs` as reference.
+
 ## Commit messages
 
 Complete sentences, focus on **why** (e.g. "Raise lineup_engine coverage gate so SS def regression is caught in CI").

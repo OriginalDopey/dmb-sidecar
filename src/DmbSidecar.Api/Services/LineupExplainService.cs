@@ -6,7 +6,10 @@ using DmbSidecar.Api.Services.LineupExplain;
 namespace DmbSidecar.Api.Services;
 
 /// <summary>
-/// Lineup Lab explain: classifies the question, optionally invokes Foundry, otherwise routes to offline handlers.
+/// Lineup Lab explain orchestrator for <c>POST /lineup/explain</c>.
+/// Ensures analyze data exists, classifies the question via <see cref="LineupExplainRouter"/>,
+/// prefers Foundry when configured, and routes to typed offline handlers on failure.
+/// Returns <see cref="AdviseResponse"/> with <see cref="AdviseResponse.QuestionKind"/> set for UI routing.
 /// </summary>
 public sealed class LineupExplainService
 {
@@ -16,6 +19,7 @@ public sealed class LineupExplainService
     private readonly LineupExplainRouter _router;
     private readonly ILogger<LineupExplainService> _log;
 
+    /// <summary>Creates the service with lineup analysis, IQ, Foundry, and router dependencies.</summary>
     public LineupExplainService(
         LineupAnalyzeService lineup,
         LocalIqService localIq,
@@ -30,11 +34,16 @@ public sealed class LineupExplainService
         _log = log;
     }
 
-    /// <summary>Answers a lineup-specific question using analysis context from the side panel.</summary>
+    /// <summary>
+    /// Answers a lineup-specific question using analysis context from the side panel.
+    /// Re-runs analyze when <see cref="LineupExplainRequest.Lineup"/> is not supplied.
+    /// </summary>
     public async Task<AdviseResponse> ExplainAsync(LineupExplainRequest request, CancellationToken ct = default)
     {
         var sw = Stopwatch.StartNew();
         string? warning = null;
+
+        // --- Ensure lineup analysis ---
 
         var analysis = request.Lineup;
         if (analysis == null)
@@ -56,6 +65,8 @@ public sealed class LineupExplainService
 
         var intent = _router.Classify(request.Question, request.Context, analysis);
 
+        // --- Foundry path ---
+
         if (_foundry.IsConfigured)
         {
             try
@@ -71,6 +82,8 @@ public sealed class LineupExplainService
                 warning = "Foundry unavailable — local handler answer below.";
             }
         }
+
+        // --- Offline handler path ---
 
         var explainContext = new LineupExplainContext(
             request.Question, intent, request.Context, analysis, iqSnippets);

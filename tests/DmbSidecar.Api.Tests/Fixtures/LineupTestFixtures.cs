@@ -2,9 +2,16 @@ using DmbSidecar.Api.Models;
 
 namespace DmbSidecar.Api.Tests.Fixtures;
 
-/// <summary>Shared lineup analysis fixtures for explain and integration tests.</summary>
+/// <summary>
+/// Shared lineup analysis fixtures for explain handlers and integration tests.
+/// Provides a consistent <see cref="PageContext"/>, current/recommended slot
+/// lists, and a pre-built <see cref="LineupAnalyzeResponse"/> with swaps.
+/// </summary>
 public static class LineupTestFixtures
 {
+    /// <summary>
+    /// Browser page context for a Primary vs. LHP lineup edit screen.
+    /// </summary>
     public static PageContext DemoContext => new(
         PageType: "lineup",
         Url: "https://imaginesports.com/bball/manage/edit_lineup",
@@ -13,6 +20,9 @@ public static class LineupTestFixtures
         Slots: DemoCurrentLineup.Select(s => new PageSlot(s.Order, s.Position, s.Player, "L")).ToList(),
         Extra: new Dictionary<string, string> { ["pitcherSide"] = "lhp" });
 
+    /// <summary>
+    /// Nine-slot current lineup used as the user's baseline in explain tests.
+    /// </summary>
     public static IReadOnlyList<LineupSlotResult> DemoCurrentLineup =>
     [
         Slot(1, "DH", "Cobb, Ty", 128, 0),
@@ -26,6 +36,9 @@ public static class LineupTestFixtures
         Slot(9, "C", "Nieves, Charlie", 72, 1),
     ];
 
+    /// <summary>
+    /// Model-recommended nine-slot lineup with positional and batting-order changes.
+    /// </summary>
     public static IReadOnlyList<LineupSlotResult> DemoRecommendedLineup =>
     [
         Slot(1, "CF", "Agee, Tommie", 88, 3),
@@ -39,6 +52,9 @@ public static class LineupTestFixtures
         Slot(9, "DH", "Rizzo, Anthony", 102, 0),
     ];
 
+    /// <summary>
+    /// Full analyze response derived from demo current and recommended lineups.
+    /// </summary>
     public static LineupAnalyzeResponse DemoAnalysis => new(
         LineupName: "Primary vs. LHP",
         PitcherSide: "lhp",
@@ -60,6 +76,9 @@ public static class LineupTestFixtures
         Summary: "Δ +8.2 RC+def",
         Engine: "dmb-config");
 
+    /// <summary>
+    /// Builds a <see cref="LineupSlotResult"/> with RC, defense, and salary defaults.
+    /// </summary>
     private static LineupSlotResult Slot(int order, string pos, string player, double rc, decimal def) =>
         new(order, pos, player, rc, (double)def, rc + (double)def, 5_000_000, true);
 }

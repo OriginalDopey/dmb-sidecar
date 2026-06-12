@@ -5,11 +5,14 @@ namespace DmbSidecar.Api.Services.LineupExplain.Handlers;
 
 /// <summary>
 /// Summarizes top lineup swaps and total RC+def delta vs current.
+/// Handles "explain the recommendation" and broad change-summary questions.
 /// </summary>
 internal sealed class RecommendationSummaryHandler : ILineupExplainHandler
 {
+    /// <inheritdoc />
     public LineupQuestionKind Kind => LineupQuestionKind.RecommendationSummary;
 
+    /// <inheritdoc />
     public string Build(LineupExplainContext ctx)
     {
         var sb = new StringBuilder();

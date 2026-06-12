@@ -3,11 +3,16 @@ using DmbSidecar.Api.Models;
 
 namespace DmbSidecar.Api.Services.LineupExplain.Handlers;
 
-/// <summary>Explains DH assignment using defense-recovery logic (weakest glove parked).</summary>
+/// <summary>
+/// Explains DH assignment using defense-recovery logic (weakest glove parked at bat-only).
+/// Compares current vs recommended DH and field positions for named players.
+/// </summary>
 internal sealed class DhAssignmentHandler : ILineupExplainHandler
 {
+    /// <inheritdoc />
     public LineupQuestionKind Kind => LineupQuestionKind.DhAssignment;
 
+    /// <inheritdoc />
     public string Build(LineupExplainContext ctx)
     {
         var sb = new StringBuilder();

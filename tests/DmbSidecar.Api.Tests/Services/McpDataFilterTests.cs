@@ -3,8 +3,15 @@ using DmbSidecar.Api.Services;
 
 namespace DmbSidecar.Api.Tests.Services;
 
+/// <summary>
+/// Unit tests for <see cref="McpDataFilter"/> normalization of MCP snapshot and
+/// summary text before inclusion in advise responses.
+/// </summary>
 public sealed class McpDataFilterTests
 {
+    /// <summary>
+    /// Verifies null and whitespace snapshots are rejected.
+    /// </summary>
     [Fact]
     public void NormalizeSnapshot_returns_null_for_empty()
     {
@@ -12,12 +19,18 @@ public sealed class McpDataFilterTests
         McpDataFilter.NormalizeSnapshot("   ").Should().BeNull();
     }
 
+    /// <summary>
+    /// Verifies stale-cache placeholder messages are filtered out.
+    /// </summary>
     [Fact]
     public void NormalizeSnapshot_rejects_stale_cache_message()
     {
         McpDataFilter.NormalizeSnapshot("No cached MCP data for team").Should().BeNull();
     }
 
+    /// <summary>
+    /// Verifies snapshots that do not mention page players are rejected.
+    /// </summary>
     [Fact]
     public void NormalizeSnapshot_rejects_snapshot_missing_page_players()
     {
@@ -32,6 +45,9 @@ public sealed class McpDataFilterTests
         McpDataFilter.NormalizeSnapshot("Unrelated league text only", context).Should().BeNull();
     }
 
+    /// <summary>
+    /// Verifies snapshots referencing lineup players pass through unchanged.
+    /// </summary>
     [Fact]
     public void NormalizeSnapshot_accepts_matching_roster()
     {
@@ -50,6 +66,9 @@ public sealed class McpDataFilterTests
             .Should().Be("Roster includes Cobb and Ruth stats");
     }
 
+    /// <summary>
+    /// Verifies league summary text filters no-cache placeholders but keeps valid summaries.
+    /// </summary>
     [Fact]
     public void NormalizeSummary_filters_no_cache()
     {

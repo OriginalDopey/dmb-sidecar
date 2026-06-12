@@ -1,23 +1,44 @@
 /**
- * Edit Lineup page adapter — ImagineSports /manage/edit_lineup
+ * @file Edit Lineup page adapter — ImagineSports `/manage/edit_lineup`.
  *
- * Scrapes batting order from `ul#phoneticlong > li` (not table rows).
- * Outputs PageContext with 9 slots, lineup name, and pitcherSide (lhp/rhp).
+ * **Purpose:** Scrapes batting order from `ul#phoneticlong > li` (not table rows),
+ * roster pool eligibility, and batter rating tables into a structured `PageContext`.
+ *
+ * **Message flow:** Consumed by `registry.extractPageContext` → content script →
+ * background; not called directly by messaging layer.
+ *
+ * **Dependencies:** `adapters/types.js` (`PageAdapter`), `shared/types.js` (`PageContext`,
+ * `PageSlot`).
  *
  * @see docs/CODEBASE_MAP.md
  */
 import type { PageAdapter } from "./types.js";
 import type { PageContext, PageSlot } from "../../shared/types.js";
 
+// --- Constants & patterns ---
+
 const POS_RE = /^(DH|C|1B|2B|3B|SS|LF|CF|RF)$/i;
 
+// --- Pitcher side & label parsing ---
+
+/**
+ * Infers opposing pitcher handedness from the lineup name dropdown value.
+ *
+ * @param lineupName - e.g. `"Primary vs. LHP"` or `"Primary vs RHP"`.
+ * @returns `"lhp"` when name indicates vs-lefties, otherwise `"rhp"`.
+ */
 function detectPitcherSide(lineupName: string | undefined): string {
   const n = (lineupName || "").toLowerCase();
   if (n.includes("vs lhp") || n.includes("v. lhp") || n.includes("vs. lhp")) return "lhp";
   return "rhp";
 }
 
-/** Strip IS option suffix: "Cobb, Ty ✻ - (CF, RF)" → "Cobb, Ty" */
+/**
+ * Strips ImagineSports option suffixes from a player label.
+ *
+ * @param text - Raw option text, e.g. `"Cobb, Ty ✻ - (CF, RF)"`.
+ * @returns Clean `"Last, First"` name without eligibility or injury markers.
+ */
 function cleanPlayerLabel(text: string): string {
   return text
     .replace(/\s*-\s*\([^)]+\)\s*$/, "")
@@ -27,6 +48,12 @@ function cleanPlayerLabel(text: string): string {
     .trim();
 }
 
+/**
+ * Parses a roster `<option>` into name and position eligibility list.
+ *
+ * @param text - Full option label from a player select.
+ * @returns Parsed name and positions, or `null` for placeholders/invalid entries.
+ */
 function parseRosterOption(text: string): { name: string; positions: string[] } | null {
   const raw = (text || "").trim();
   const elig = raw.match(/\(([^)]+)\)\s*$/);
@@ -43,6 +70,14 @@ function parseRosterOption(text: string): { name: string; positions: string[] } 
   return null;
 }
 
+// --- DOM helpers ---
+
+/**
+ * Returns the selected option from an IS player dropdown, preferring explicit `[selected]`.
+ *
+ * @param select - Player `<select>` element.
+ * @returns Selected option with a non-empty value, or `null`.
+ */
 function selectedOption(select: HTMLSelectElement): HTMLOptionElement | null {
   const marked = select.querySelector("option[selected], option[SELECTED]");
   if (marked instanceof HTMLOptionElement && marked.value) return marked;
@@ -51,6 +86,12 @@ function selectedOption(select: HTMLSelectElement): HTMLOptionElement | null {
   return null;
 }
 
+/**
+ * Locates the batting-order list root (`ul#phoneticlong` or fallbacks).
+ *
+ * @param document - Edit Lineup page document.
+ * @returns List element containing batting-order `<li>` rows, or `null`.
+ */
 function lineupListRoot(document: Document): HTMLUListElement | null {
   return (
     document.querySelector<HTMLUListElement>("ul#phoneticlong") ??
@@ -59,6 +100,12 @@ function lineupListRoot(document: Document): HTMLUListElement | null {
   );
 }
 
+/**
+ * Reads the active lineup name from hidden input or adjacent form fields.
+ *
+ * @param document - Edit Lineup page document.
+ * @returns Lineup name string when found.
+ */
 function extractLineupName(document: Document): string | undefined {
   const named = document.querySelector<HTMLInputElement>("input[name='lineup_name']");
   if (named?.value?.trim()) return named.value.trim();
@@ -74,6 +121,12 @@ function extractLineupName(document: Document): string | undefined {
   return undefined;
 }
 
+/**
+ * Extracts defensive position abbreviation from a batting-order list item.
+ *
+ * @param li - `<li>` row in the phonetic batting list.
+ * @returns Uppercase position code when matched against `POS_RE`.
+ */
 function positionFromLi(li: Element): string | undefined {
   const bold = li.querySelector("b");
   const t = bold?.textContent?.trim() ?? "";
@@ -85,6 +138,14 @@ function positionFromLi(li: Element): string | undefined {
   return undefined;
 }
 
+// --- Slot extraction ---
+
+/**
+ * Scrapes up to nine batting-order slots from the phonetic list markup.
+ *
+ * @param document - Edit Lineup page document.
+ * @returns Ordered `PageSlot` array; empty when list root is missing (see legacy).
+ */
 function extractBattingSlots(document: Document): PageSlot[] {
   const root = lineupListRoot(document);
   if (!root) return extractBattingSlotsLegacy(document);
@@ -111,7 +172,12 @@ function extractBattingSlots(document: Document): PageSlot[] {
   return slots.slice(0, 9);
 }
 
-/** Fallback if phoneticlong missing (older markup experiments). */
+/**
+ * Fallback slot scraper for older table-row lineup markup.
+ *
+ * @param document - Edit Lineup page document.
+ * @returns Up to nine deduplicated slots sorted by batting order.
+ */
 function extractBattingSlotsLegacy(document: Document): PageSlot[] {
   const slots: PageSlot[] = [];
   document.querySelectorAll("tr").forEach((row) => {
@@ -132,6 +198,12 @@ function extractBattingSlotsLegacy(document: Document): PageSlot[] {
   return [...byOrder.values()].sort((a, b) => a.order - b.order).slice(0, 9);
 }
 
+/**
+ * Collects unique roster names and position eligibility from all lineup selects.
+ *
+ * @param document - Edit Lineup page document.
+ * @returns Deduped player names and per-name position arrays for the optimizer pool.
+ */
 function extractRosterPool(document: Document): { names: string[]; eligibility: Record<string, string[]> } {
   const names = new Set<string>();
   const eligibility: Record<string, string[]> = {};
@@ -156,6 +228,12 @@ function extractRosterPool(document: Document): { names: string[]; eligibility: 
   return { names: [...names], eligibility };
 }
 
+/**
+ * Scrapes batter rating snippets from `table.stat_table` blocks on the lineup page.
+ *
+ * @param document - Edit Lineup page document.
+ * @returns Map of player name → OBP/RC display string.
+ */
 function extractBatterRatings(document: Document): Record<string, string> {
   const ratings: Record<string, string> = {};
   document.querySelectorAll("table.stat_table").forEach((table) => {
@@ -180,13 +258,26 @@ function extractBatterRatings(document: Document): Record<string, string> {
   return ratings;
 }
 
+// --- Adapter export ---
+
 export const lineupAdapter: PageAdapter = {
   pageType: "lineup",
 
+  /**
+   * @param url - Current page URL.
+   * @returns True when pathname includes `/manage/edit_lineup`.
+   */
   matches(url: URL): boolean {
     return url.pathname.includes("/manage/edit_lineup");
   },
 
+  /**
+   * Builds full `PageContext` for the Edit Lineup screen.
+   *
+   * @param document - Live DOM.
+   * @param url - Current location (for `curTeam`, `lineupID` query params).
+   * @returns Structured context with slots, pool JSON, and pitcher side in `extra`.
+   */
   extract(document: Document, url: URL): PageContext {
     const params = url.searchParams;
     const curTeam = params.get("curTeam") ?? undefined;
