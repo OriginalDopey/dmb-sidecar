@@ -4,7 +4,9 @@ public sealed record PageSlot(
     int Order,
     string? Position,
     string? PlayerName,
-    string? Bats
+    string? Bats,
+    string? Salary = null,
+    string? Section = null
 );
 
 public sealed record PageContext(
@@ -31,7 +33,8 @@ public sealed record AdviseResponse(
     string Answer,
     IReadOnlyList<Citation> Citations,
     long ElapsedMs,
-    string? Warning
+    string? Warning,
+    string? QuestionKind = null
 );
 
 public sealed record HealthResponse(

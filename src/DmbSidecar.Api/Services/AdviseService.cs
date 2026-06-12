@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using DmbSidecar.Api.Models;
+using DmbSidecar.Api.Utilities;
 
 namespace DmbSidecar.Api.Services;
 
@@ -9,12 +10,18 @@ public sealed class AdviseService
 {
     private readonly FoundryAgentService _foundry;
     private readonly McpBridgeClient _mcp;
+    private readonly LocalIqService _localIq;
     private readonly ILogger<AdviseService> _log;
 
-    public AdviseService(FoundryAgentService foundry, McpBridgeClient mcp, ILogger<AdviseService> log)
+    public AdviseService(
+        FoundryAgentService foundry,
+        McpBridgeClient mcp,
+        LocalIqService localIq,
+        ILogger<AdviseService> log)
     {
         _foundry = foundry;
         _mcp = mcp;
+        _localIq = localIq;
         _log = log;
     }
 
@@ -27,14 +34,21 @@ public sealed class AdviseService
         string? teamSnapshot = null;
         string? leagueSummary = null;
 
+        var entryTeam = string.IsNullOrWhiteSpace(request.Context.CurTeam) ? null : request.Context.CurTeam;
+
         if (await _mcp.IsHealthyAsync(ct))
         {
-            teamSnapshot = await _mcp.GetTeamSnapshotAsync(ct);
-            leagueSummary = await _mcp.GetLeagueSummaryAsync(ct);
+            var rawSnapshot = await _mcp.GetTeamSnapshotAsync(entryTeam, ct);
+            teamSnapshot = McpDataFilter.NormalizeSnapshot(rawSnapshot, request.Context);
+            leagueSummary = McpDataFilter.NormalizeSummary(await _mcp.GetLeagueSummaryAsync(entryTeam, ct));
             if (teamSnapshot != null)
-                citations.Add(new Citation("mcp", "Team snapshot (cached DB)", Truncate(teamSnapshot, 200)));
+                citations.Add(new Citation("mcp", "Team snapshot (cached DB)", TextHelper.Truncate(teamSnapshot, 200)));
             if (leagueSummary != null)
-                citations.Add(new Citation("mcp", "League summary (cached DB)", Truncate(leagueSummary, 200)));
+                citations.Add(new Citation("mcp", "League summary (cached DB)", TextHelper.Truncate(leagueSummary, 200)));
+            if (rawSnapshot != null && teamSnapshot == null && request.Context.Slots is { Count: > 0 })
+                warnings.Add("MCP roster cache looks stale vs. this page — using browser roster.");
+            else if (entryTeam != null && teamSnapshot == null && leagueSummary == null)
+                warnings.Add($"No MCP cache for curTeam {entryTeam} — using on-page roster only.");
         }
         else
         {
@@ -53,7 +67,10 @@ public sealed class AdviseService
         {
             _log.LogError(ex, "Foundry invoke failed");
             warnings.Add($"Foundry error: {ex.Message}");
-            answer = BuildOfflineFallback(request, teamSnapshot, leagueSummary, ex.Message);
+            var iqSnippets = _localIq.Search(request.Question);
+            if (iqSnippets.Count > 0)
+                citations.Add(new Citation("local-iq", "iq-sources/ (offline)", TextHelper.Truncate(string.Join(" ", iqSnippets), 200)));
+            answer = OfflineAdviseHelper.Build(request, teamSnapshot, leagueSummary, iqSnippets, ex.Message);
         }
 
         sw.Stop();
@@ -75,6 +92,7 @@ public sealed class AdviseService
         sb.AppendLine();
         sb.AppendLine("## Page context (from browser)");
         sb.AppendLine(JsonSerializer.Serialize(request.Context, new JsonSerializerOptions { WriteIndented = true }));
+        AppendPageRosterSummary(sb, request.Context);
         if (teamSnapshot != null)
         {
             sb.AppendLine();
@@ -90,40 +108,32 @@ public sealed class AdviseService
         return sb.ToString();
     }
 
-    private static string BuildOfflineFallback(
-        AdviseRequest request,
-        string? teamSnapshot,
-        string? leagueSummary,
-        string error)
+    private static void AppendPageRosterSummary(StringBuilder sb, PageContext context)
     {
-        var sb = new StringBuilder();
-        sb.AppendLine("**Foundry agent unavailable** — offline scaffold response.");
-        sb.AppendLine($"Error: {error}");
+        if (context.PageType != "roster" || context.Slots is not { Count: > 0 })
+            return;
+
         sb.AppendLine();
-        sb.AppendLine("Complete manual step: create agent `dmb-front-office` in Foundry portal (see docs/manual-steps/FOUNDRY_IQ_PORTAL.md).");
-        sb.AppendLine();
-        sb.AppendLine($"**Your question:** {request.Question}");
-        sb.AppendLine($"**Page:** {request.Context.PageType} — {request.Context.Url}");
-        if (request.Context.Slots?.Count > 0)
+        sb.AppendLine("## Roster on screen (browser DOM)");
+        if (context.Extra != null)
         {
-            sb.AppendLine("**Lineup on screen:**");
-            foreach (var s in request.Context.Slots)
-                sb.AppendLine($"  {s.Order}. {s.PlayerName} ({s.Position})");
+            if (context.Extra.TryGetValue("teamName", out var team)) sb.AppendLine($"Team: {team}");
+            if (context.Extra.TryGetValue("totalValue", out var cap)) sb.AppendLine($"Total value: {cap}");
+            if (context.Extra.TryGetValue("cashBalance", out var cash)) sb.AppendLine($"Cash: {cash}");
+            if (context.Extra.TryGetValue("stadium", out var park)) sb.AppendLine($"Park: {park}");
         }
-        if (teamSnapshot != null)
+
+        foreach (var group in new[] { ("Hitters", "batter"), ("Pitchers", "pitcher"), ("IR", "ir") })
         {
-            sb.AppendLine();
-            sb.AppendLine("**Cached roster/finance:**");
-            sb.AppendLine(teamSnapshot);
+            var rows = context.Slots
+                .Where(s => string.Equals(s.Section, group.Item2, StringComparison.OrdinalIgnoreCase))
+                .Take(30)
+                .ToList();
+            if (rows.Count == 0) continue;
+            sb.AppendLine($"{group.Item1}:");
+            foreach (var p in rows)
+                sb.AppendLine($"  {p.Position} {p.PlayerName} {p.Salary}".Trim());
         }
-        if (leagueSummary != null)
-        {
-            sb.AppendLine();
-            sb.AppendLine(leagueSummary);
-        }
-        return sb.ToString();
     }
 
-    private static string Truncate(string s, int max) =>
-        s.Length <= max ? s : s[..max] + "…";
 }

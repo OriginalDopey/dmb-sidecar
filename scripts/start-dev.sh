@@ -20,19 +20,22 @@ if [[ -f "$ROOT/.env.local" ]]; then
 fi
 
 echo "=== DMB Sidecar dev stack ==="
+"$ROOT/scripts/stop-dev.sh" 2>/dev/null || true
 echo "MCP DB: $DMB_DB_PATH"
 echo "API:    http://127.0.0.1:5280"
 echo "Bridge: http://127.0.0.1:8765"
 echo ""
 
-cleanup() { kill $(jobs -p) 2>/dev/null || true; }
-trap cleanup EXIT
+cleanup() { "$ROOT/scripts/stop-dev.sh" 2>/dev/null || kill $(jobs -p) 2>/dev/null || true; }
+trap cleanup EXIT INT TERM
+
+"$ROOT/scripts/sync-dmb-config.sh" 2>/dev/null || echo "Note: sync-dmb-config skipped (DiamondMind/scripts not found)"
 
 cd "$ROOT/src/DmbSidecar.McpBridge"
 if [[ ! -d .venv ]]; then
   python3.11 -m venv .venv
-  .venv/bin/pip install -q -r requirements.txt
 fi
+.venv/bin/pip install -q -r requirements.txt
 # shellcheck disable=SC1091
 source .venv/bin/activate
 export PYTHONPATH="$DMB_MCP_SRC${PYTHONPATH:+:$PYTHONPATH}"

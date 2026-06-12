@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  dotnet:
+    name: .NET API — build, test, coverage, SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore dmb-sidecar.sln
+
+      - name: Build
+        run: dotnet build dmb-sidecar.sln --configuration Release --no-restore
+
+      - name: Test with coverage
+        run: >
+          dotnet test tests/DmbSidecar.Api.Tests/DmbSidecar.Api.Tests.csproj
+          --configuration Release
+          --no-build
+          --settings tests/DmbSidecar.Api.Tests/coverlet.runsettings
+          --collect:"XPlat Code Coverage"
+          --results-directory ./TestResults
+          --logger "trx;LogFileName=dotnet.trx"
+
+      - name: Upload .NET coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-dotnet
+          path: TestResults/**/coverage.cobertura.xml
+
+      - name: Install CycloneDX CLI
+        run: dotnet tool install --global CycloneDX
+
+      - name: Generate .NET SBOM
+        run: >
+          dotnet-CycloneDX src/DmbSidecar.Api/DmbSidecar.Api.csproj
+          -o sbom/dotnet
+          -f sbom-dotnet.json
+          --json
+
+      - name: Upload .NET SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-dotnet
+          path: sbom/dotnet/sbom-dotnet.json
+
+  python:
+    name: MCP bridge — test, SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r src/DmbSidecar.McpBridge/requirements.txt
+          pip install -r src/DmbSidecar.McpBridge/requirements-dev.txt
+
+      - name: Pytest
+        run: pytest tests/python -q
+
+      - name: Generate Python SBOM
+        run: |
+          pip install cyclonedx-bom
+          cyclonedx-py requirements src/DmbSidecar.McpBridge/requirements.txt -o sbom-python.json
+
+      - name: Upload Python SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-python
+          path: sbom-python.json
+
+  extension:
+    name: Chrome extension — build, test, SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install and build
+        working-directory: extension
+        run: |
+          npm ci --cache /tmp/npm-cache-dmb
+          npm run build
+          npm test
+
+      - name: Generate npm SBOM
+        working-directory: extension
+        run: |
+          npm exec --cache /tmp/npm-cache-dmb -- @cyclonedx/cyclonedx-npm --output-file ../sbom-extension.json
+
+      - name: Upload extension SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-extension
+          path: sbom-extension.json

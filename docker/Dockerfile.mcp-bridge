@@ -1,7 +1,12 @@
 FROM python:3.11-slim
 WORKDIR /app
+
 COPY src/DmbSidecar.McpBridge/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY src/DmbSidecar.McpBridge/app.py .
+
+COPY src/DmbSidecar.McpBridge/ .
+COPY data/player-pool/ /data/player-pool/
+
+ENV DMB_SIDECAR_DATA=/data
 EXPOSE 8765
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8765"]

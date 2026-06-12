@@ -3,7 +3,7 @@
   "name": "DMB Sidecar",
   "version": "0.1.0",
   "description": "Foundry IQ-grounded copilot for Diamond Mind Baseball on ImagineSports. Not affiliated with ImagineSports.",
-  "permissions": ["sidePanel", "storage", "activeTab", "scripting"],
+  "permissions": ["sidePanel", "storage", "activeTab", "scripting", "tabs"],
   "host_permissions": [
     "https://www.imaginesports.com/*",
     "https://imaginesports.com/*",

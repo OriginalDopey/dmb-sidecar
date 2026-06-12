@@ -1,0 +1,10 @@
+"""Pytest configuration for MCP bridge unit tests."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+BRIDGE_ROOT = Path(__file__).resolve().parents[2] / "src" / "DmbSidecar.McpBridge"
+if str(BRIDGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(BRIDGE_ROOT))

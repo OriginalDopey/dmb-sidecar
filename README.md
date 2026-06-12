@@ -68,6 +68,24 @@ cd extension && npm install && npm run build
 
 Default API key: `dev-key-change-me` (change in `appsettings.json` + extension options).
 
+## Quality & CI
+
+| Layer | Tests | Command |
+|-------|-------|---------|
+| .NET API | xUnit + integration (`WebApplicationFactory`) | `dotnet test dmb-sidecar.sln` |
+| MCP bridge | pytest (`lineup_engine` pure functions) | `pytest tests/python` |
+| Extension | vitest (`lineup-format`) | `cd extension && npm test` |
+
+**Full local CI mirror** (build, test, SBOM):
+
+```bash
+./scripts/ci.sh
+```
+
+**GitHub Actions** (`.github/workflows/ci.yml`): build + test all three layers, upload coverage and CycloneDX SBOM artifacts per stack.
+
+**Solution:** `dmb-sidecar.sln` — API + `tests/DmbSidecar.Api.Tests`.
+
 ## Build journal
 
 [docs/BUILD_JOURNAL.md](docs/BUILD_JOURNAL.md) — what Cursor/Composer built vs manual steps (for interviews).

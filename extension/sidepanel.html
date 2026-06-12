@@ -12,29 +12,36 @@
     <p class="disclaimer">Not affiliated with ImagineSports</p>
   </header>
 
-  <section class="card">
+  <section id="page-context-card" class="card">
     <h2>Current page</h2>
     <p id="page-label" class="mono">—</p>
     <pre id="context-preview" class="preview"></pre>
   </section>
 
-  <section class="card">
-    <h2>Ask</h2>
-    <textarea id="question" rows="3" placeholder="e.g. Review this lineup vs RHP…"></textarea>
+  <section id="lineup-lab" class="card hidden">
+    <h2>Lineup Lab</h2>
+    <p id="lineup-title" class="lineup-headline">—</p>
+    <button id="optimize-btn" type="button" class="primary full">Optimize this lineup</button>
+  </section>
+
+  <section id="lineup-results" class="card hidden">
+    <div id="chart-area"></div>
+    <div id="answer" class="answer"></div>
+    <ul id="citations"></ul>
+  </section>
+
+  <section id="ask-section" class="card">
+    <h2 id="ask-heading">Ask</h2>
+    <div id="lineup-prompts" class="prompt-chips hidden" aria-label="Example lineup questions"></div>
+    <textarea id="question" rows="3" placeholder="e.g. why not Cobb at DH?"></textarea>
     <div class="buttons">
-      <button id="explain-btn" type="button" class="secondary">Explain this screen</button>
+      <button id="explain-btn" type="button" class="secondary hidden">Explain this screen</button>
       <button id="ask-btn" type="button" class="primary">Ask</button>
     </div>
   </section>
 
   <p id="status" class="status">Loading…</p>
   <p id="warning" class="warning"></p>
-
-  <section class="card">
-    <h2>Answer</h2>
-    <div id="answer" class="answer"></div>
-    <ul id="citations"></ul>
-  </section>
 
   <script type="module" src="dist/sidepanel.js"></script>
 </body>

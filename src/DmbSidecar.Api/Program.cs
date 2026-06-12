@@ -2,6 +2,7 @@ using DmbSidecar.Api.Configuration;
 using DmbSidecar.Api.Middleware;
 using DmbSidecar.Api.Models;
 using DmbSidecar.Api.Services;
+using DmbSidecar.Api.Services.LineupExplain;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +12,11 @@ builder.Services.Configure<ApiSecurityOptions>(builder.Configuration.GetSection(
 
 builder.Services.AddHttpClient<FoundryAgentService>();
 builder.Services.AddHttpClient<McpBridgeClient>();
+builder.Services.AddSingleton<LocalIqService>();
 builder.Services.AddSingleton<AdviseService>();
+builder.Services.AddSingleton<LineupAnalyzeService>();
+builder.Services.AddSingleton<LineupExplainRouter>();
+builder.Services.AddSingleton<LineupExplainService>();
 
 builder.Services.AddCors(options =>
 {
@@ -71,4 +76,27 @@ app.MapPost("/advise", async (AdviseRequest request, AdviseService advise, Cance
     return Results.Ok(response);
 }).WithTags("Advise");
 
+app.MapPost("/lineup/analyze", async (PageContext context, LineupAnalyzeService lineup, CancellationToken ct) =>
+{
+    if (context.PageType != "lineup" || context.Slots is not { Count: > 0 })
+        return Results.BadRequest(new { error = "Open Edit Lineup with 9 slots filled." });
+    var result = await lineup.AnalyzeAsync(context, ct);
+    if (result == null)
+        return Results.Problem("Lineup analysis failed — check player pool CSV.", statusCode: 502);
+    return Results.Ok(result);
+}).WithTags("Lineup");
+
+app.MapPost("/lineup/explain", async (LineupExplainRequest request, LineupExplainService explain, CancellationToken ct) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Question))
+        return Results.BadRequest(new { error = "Question is required." });
+    if (request.Context.PageType != "lineup")
+        return Results.BadRequest(new { error = "Open Edit Lineup first." });
+    var response = await explain.ExplainAsync(request, ct);
+    return Results.Ok(response);
+}).WithTags("Lineup");
+
 app.Run();
+
+/// <summary>Entry point type for ASP.NET Core integration tests.</summary>
+public partial class Program { }

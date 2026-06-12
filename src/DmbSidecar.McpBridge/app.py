@@ -61,6 +61,14 @@ class ReportResponse(BaseModel):
     text: str
 
 
+class LineupAnalyzeRequest(BaseModel):
+    pitcherSide: str = "rhp"
+    currentLineup: list[dict[str, Any]] = []
+    rosterNames: list[str] = []
+    lineupName: str = ""
+    positionEligibility: dict[str, list[str]] | None = None
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "mcp-bridge"}
@@ -119,16 +127,36 @@ def injuries(team_id: str = "mine") -> list[dict]:
     return repo.injuries(tid)
 
 
+def _owner_team_for_scope(ctx, scope: str | None) -> str | None:
+    entry = ctx.resolve_entry_team_id(scope)
+    row = ctx.db.execute(
+        "SELECT owner_team_id FROM leagues WHERE entry_team_id = ? LIMIT 1",
+        [entry],
+    ).fetchone()
+    if row and row["owner_team_id"]:
+        return str(row["owner_team_id"])
+    return None
+
+
 @app.get("/report/team_snapshot")
 def team_snapshot(team_id: str = "mine") -> ReportResponse:
     from dmb_mcp.db.repository import Repository
 
     ctx = _get_ctx()
     repo = Repository(ctx.db)
-    tid = ctx.resolve_team_id(team_id)
+    entry = ctx.resolve_entry_team_id(team_id)
+    tid = _owner_team_for_scope(ctx, team_id)
+    if not tid:
+        return ReportResponse(
+            text=(
+                f"No cached MCP data for entry team {entry}. "
+                "Use roster data from the browser page, or run POST /scrape/refresh "
+                f"with entry_team_id={entry}."
+            )
+        )
     roster_rows = repo.roster(tid)
     fin = repo.financials(tid)
-    lines = [f"Team {tid}", f"Roster ({len(roster_rows)} players):"]
+    lines = [f"Team {tid} (entry {entry})", f"Roster ({len(roster_rows)} players):"]
     for p in roster_rows[:28]:
         lines.append(f"  {p.player} ({p.position}) {p.salary}")
     if fin:
@@ -139,13 +167,35 @@ def team_snapshot(team_id: str = "mine") -> ReportResponse:
 
 
 @app.get("/report/league_summary")
-def league_summary(league_id: str = "mine") -> ReportResponse:
+def league_summary(team_id: str = "mine") -> ReportResponse:
     from dmb_mcp.db.repository import Repository
 
     ctx = _get_ctx()
     repo = Repository(ctx.db)
-    lid = ctx.resolve_league_id(league_id)
-    return ReportResponse(text=repo.league_summary_text(lid))
+    entry = ctx.resolve_entry_team_id(team_id)
+    try:
+        lid = ctx.resolve_league_id(entry)
+    except ValueError as exc:
+        return ReportResponse(text=str(exc))
+    text = repo.league_summary_text(lid)
+    if "Standings (0 teams)" in text or text.strip().endswith("Standings (0 teams):"):
+        return ReportResponse(
+            text=f"No cached standings for entry {entry}. Scrape this league or use on-page roster data."
+        )
+    return ReportResponse(text=text)
+
+
+@app.post("/lineup/analyze")
+def lineup_analyze(body: LineupAnalyzeRequest) -> dict:
+    from lineup_engine import analyze
+
+    return analyze(
+        pitcher_side=body.pitcherSide,
+        current_lineup=body.currentLineup,
+        roster_names=body.rosterNames,
+        lineup_name=body.lineupName,
+        position_eligibility=body.positionEligibility,
+    )
 
 
 @app.post("/scrape/refresh")

@@ -3,11 +3,12 @@
 **Time:** ~60–90 minutes  
 **Prerequisite:** `az login`, Skillsfest subscription, `iq-sources/` synced (`./scripts/sync-iq-sources.sh`)
 
-## 1. Open project
+## 1. Open or create project
 
 1. Go to [https://ai.azure.com](https://ai.azure.com)
 2. Select subscription **Skillsfest**
-3. Open project **skillfestFoundry** (or your Foundry project)
+3. **If `skillfestFoundry` is missing** (Azure returns 404 / no resource): create a new **Foundry** project, copy its **Project endpoint** URL, and set `Foundry:ProjectEndpoint` in `src/DmbSidecar.Api/appsettings.json`
+4. Otherwise open project **skillfestFoundry**
 
 ## 2. Create knowledge base
 
