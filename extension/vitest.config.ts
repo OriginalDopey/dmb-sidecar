@@ -6,6 +6,8 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/shared/lineup-format.ts"],
+      reporter: ["text", "json-summary", "html"],
+      reportsDirectory: "./coverage",
       thresholds: {
         lines: 90,
         functions: 90,

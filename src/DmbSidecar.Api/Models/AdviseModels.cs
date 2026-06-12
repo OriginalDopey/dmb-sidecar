@@ -32,8 +32,10 @@ public sealed record Citation(
     string? Snippet
 );
 
-/// <summary>Answer payload returned to the Chrome side panel.</summary>
-/// <param name="QuestionKind">Set for Lineup Lab explain — e.g. <c>DhAssignment</c>, <c>PositionComparison</c>.</param>
+/// <summary>
+/// Answer payload returned to the Chrome side panel.
+/// <see cref="QuestionKind"/> is set for Lineup Lab explain (e.g. DhAssignment, PositionComparison).
+/// </summary>
 public sealed record AdviseResponse(
     string Answer,
     IReadOnlyList<Citation> Citations,

@@ -164,7 +164,11 @@ jobs:
       - name: Extension coverage summary
         working-directory: extension
         run: |
-          PCT="$(node -e "const s=require('./coverage/coverage-summary.json'); const k=Object.keys(s).find(x=>x.includes('lineup-format')); console.log(s[k].lines.pct)")"
+          if [[ -f coverage/coverage-summary.json ]]; then
+            PCT="$(node -e "const s=require('./coverage/coverage-summary.json'); const k=Object.keys(s).find(x=>x.includes('lineup-format'))||'total'; console.log(s[k].lines.pct)")"
+          else
+            PCT="(see test log — vitest thresholds enforce ≥90%)"
+          fi
           echo "## Extension coverage (lineup-format)" >> "$GITHUB_STEP_SUMMARY"
           echo "**${PCT}%** line coverage (gate ≥ 90%)" >> "$GITHUB_STEP_SUMMARY"
 
