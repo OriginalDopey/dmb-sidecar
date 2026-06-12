@@ -1,0 +1,7 @@
+[run]
+source = lineup_engine
+omit =
+
+[report]
+show_missing = True
+skip_covered = True

@@ -5,10 +5,11 @@
   "scripts": {
     "build": "node build.mjs",
     "watch": "node build.mjs --watch",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.8",
     "esbuild": "^0.25.0",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

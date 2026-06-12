@@ -1,99 +1,94 @@
 # DMB Sidecar
 
+[![CI](https://github.com/OriginalDopey/dmb-sidecar/actions/workflows/ci.yml/badge.svg)](https://github.com/OriginalDopey/dmb-sidecar/actions/workflows/ci.yml)
+
 **Foundry IQ-grounded Chrome copilot for [Diamond Mind Baseball](https://www.imaginesports.com) (ImagineSports).**
 
 A side panel reads the IS screen you're on, grounds advice in **Microsoft Foundry IQ** (your rules/strategy docs), and enriches with **live league data** via [dmb-mcp-server](https://github.com/OriginalDopey/dmb-mcp-server).
 
 > **Not affiliated with ImagineSports.** Personal assistant for Classic Standard league owners.
 
-Built for **Microsoft Build Agents League** (Reasoning Agents + IQ tools) and as an interview portfolio piece (agentic LOB overlay pattern).
+---
 
-**Repository:** [github.com/OriginalDopey/dmb-sidecar](https://github.com/OriginalDopey/dmb-sidecar) (private)
+## Documentation
 
-## Architecture
+| Audience | Document | What you'll learn |
+|----------|----------|-------------------|
+| **End user** | [docs/USER_GUIDE.md](docs/USER_GUIDE.md) | Install, Lineup Lab, prompt chips, troubleshooting |
+| **Developer** | [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md) | What every folder and service does |
+| **Quality / CI** | [docs/QUALITY.md](docs/QUALITY.md) | Coverage gates, how to read reports, SBOM |
+| **Architecture** | [ARCHITECTURE.md](ARCHITECTURE.md) | System diagram, security boundaries, ADRs |
+| **Demo** | [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | 5-minute interview recording script |
+| **Contributing** | [CONTRIBUTING.md](CONTRIBUTING.md) | PR workflow, adding explain question types |
+
+---
+
+## What it does (30 seconds)
 
 ```
-Chrome Extension (TS)  →  ASP.NET Core 8 API (C#)  →  Foundry Agent + IQ
-                              ↓
-                        MCP HTTP Bridge (Python)  →  SQLite league cache
+Chrome side panel  →  reads IS page DOM (lineup, roster)
+        ↓
+ASP.NET API :5280  →  routes questions, calls Foundry or offline handlers
+        ↓
+Python bridge :8765  →  lineup optimization (RC+def), MCP league cache
 ```
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) and [docs/TEACHING_GUIDE.md](docs/TEACHING_GUIDE.md).
+**Lineup Lab** (Edit Lineup): optimize vs LHP/RHP, side-by-side grid, typed explain ("why not Cobb at DH?", "why Knight over Mackanin at SS?").
+
+**General Ask** (any screen): roster review, rules Q&A, MCP-enriched advice when Foundry is live.
+
+---
 
 ## Quick start
 
-### 1. Prerequisites
-
-- macOS + Chrome
-- .NET 8 SDK (`brew install dotnet@8`)
-- Node 18+, Python 3.11+
-- Azure CLI (`az login`) + Foundry project
-- Existing [dmb-mcp-server](https://github.com/OriginalDopey/dmb-mcp-server) + DiamondMind `.is_session`
-
-### 2. Configure
-
 ```bash
-cp .env.local.example .env.local
-# Edit DMB_ENTRY_TEAM_ID and paths
+cp .env.local.example .env.local   # set DMB_ENTRY_TEAM_ID
 ./scripts/sync-iq-sources.sh
-```
+./scripts/start-dev.sh             # API :5280, bridge :8765
 
-Complete [docs/manual-steps/FOUNDRY_IQ_PORTAL.md](docs/manual-steps/FOUNDRY_IQ_PORTAL.md) — create `dmb-front-office` agent.
-
-### 3. Run backend
-
-```bash
-chmod +x scripts/start-dev.sh
-./scripts/start-dev.sh
-```
-
-API: http://127.0.0.1:5280/swagger  
-Bridge: http://127.0.0.1:8765/health
-
-### 4. Load extension
-
-```bash
 cd extension && npm install && npm run build
+# Chrome → Load unpacked → extension/
 ```
 
-[Load unpacked in Chrome](docs/manual-steps/CHROME_LOAD_UNPACKED.md) → open IS lineup → click extension icon.
+Open ImagineSports **Edit Lineup** → extension icon → **Optimize this lineup**.
+
+Details: [docs/USER_GUIDE.md](docs/USER_GUIDE.md) · [docs/SETUP.md](docs/SETUP.md)
+
+---
 
 ## API
 
 | Endpoint | Auth | Purpose |
 |----------|------|---------|
-| `GET /health` | None | Status |
-| `POST /foundry/smoke` | `X-Api-Key` | Test Foundry agent |
-| `POST /advise` | `X-Api-Key` | Page context + question → answer |
+| `GET /health` | None | Liveness + Foundry/MCP flags |
+| `POST /lineup/analyze` | `X-Api-Key` | Current vs recommended lineup |
+| `POST /lineup/explain` | `X-Api-Key` | Typed explain (`questionKind` in response) |
+| `POST /advise` | `X-Api-Key` | General page Q&A |
+| `POST /foundry/smoke` | `X-Api-Key` | Foundry connectivity test |
 
-Default API key: `dev-key-change-me` (change in `appsettings.json` + extension options).
+Swagger (dev): http://127.0.0.1:5280/swagger
 
-## Quality & CI
+---
 
-| Layer | Tests | Command |
-|-------|-------|---------|
-| .NET API | xUnit + integration (`WebApplicationFactory`) | `dotnet test dmb-sidecar.sln` |
-| MCP bridge | pytest (`lineup_engine` pure functions) | `pytest tests/python` |
-| Extension | vitest (`lineup-format`) | `cd extension && npm test` |
-
-**Full local CI mirror** (build, test, SBOM):
+## Quality & coverage
 
 ```bash
-./scripts/ci.sh
+./scripts/ci.sh                  # full local CI mirror
+./scripts/coverage-report.sh     # HTML report → coveragereport/index.html
+dotnet test dmb-sidecar.sln      # 49 unit/integration tests
+pytest tests/python              # lineup_engine (≥80% gate)
+cd extension && npm test         # vitest (≥90% on format helpers)
 ```
 
-**GitHub Actions** (`.github/workflows/ci.yml`): build + test all three layers, upload coverage and CycloneDX SBOM artifacts per stack.
+**CI** uploads coverage to each run's **Summary** tab and **Artifacts** (`coverage-dotnet-html`, `coverage-python`, `coverage-extension`).
 
-**Solution:** `dmb-sidecar.sln` — API + `tests/DmbSidecar.Api.Tests`.
+See [docs/QUALITY.md](docs/QUALITY.md) for gates and what's in / out of scope.
 
-## Build journal
+---
 
-[docs/BUILD_JOURNAL.md](docs/BUILD_JOURNAL.md) — what Cursor/Composer built vs manual steps (for interviews).
+## Repository
 
-## Related
-
-- [dmb-mcp-server](https://github.com/OriginalDopey/dmb-mcp-server) — league data MCP tools
-- Agents League submission: Reasoning Agents track
+[github.com/OriginalDopey/dmb-sidecar](https://github.com/OriginalDopey/dmb-sidecar)
 
 ## License
 

@@ -8,6 +8,9 @@
           <Include>[DmbSidecar.Api]*</Include>
           <Exclude>[DmbSidecar.Api.Tests]*</Exclude>
           <ExcludeByFile>**/Program.cs</ExcludeByFile>
+          <Threshold>55</Threshold>
+          <ThresholdType>line</ThresholdType>
+          <ThresholdStat>total</ThresholdStat>
         </Configuration>
       </DataCollector>
     </DataCollectors>

@@ -1,5 +1,6 @@
 namespace DmbSidecar.Api.Models;
 
+/// <summary>Bridge request to optimize a nine-man lineup vs LHP or RHP.</summary>
 public sealed record LineupAnalyzeRequest(
     string PitcherSide,
     IReadOnlyList<LineupSlotInput> CurrentLineup,
@@ -13,6 +14,7 @@ public sealed record LineupSlotInput(
     string? Position
 );
 
+/// <summary>Side-by-side lineup comparison for the Lineup Lab grid.</summary>
 public sealed record LineupAnalyzeResponse(
     string LineupName,
     string PitcherSide,
@@ -57,6 +59,7 @@ public sealed record LineupChart(
     IReadOnlyList<double> Recommended
 );
 
+/// <summary>Free-text lineup question with optional precomputed analysis from Optimize.</summary>
 public sealed record LineupExplainRequest(
     string Question,
     PageContext Context,

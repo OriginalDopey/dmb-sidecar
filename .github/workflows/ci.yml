@@ -41,11 +41,46 @@ jobs:
           --results-directory ./TestResults
           --logger "trx;LogFileName=dotnet.trx"
 
-      - name: Upload .NET coverage
+      - name: Coverage summary
+        run: |
+          COV_FILE="$(find TestResults -name coverage.cobertura.xml | head -1)"
+          LINE_RATE="$(grep -o 'line-rate="[0-9.]*"' "$COV_FILE" | head -1 | cut -d'"' -f2)"
+          BRANCH_RATE="$(grep -o 'branch-rate="[0-9.]*"' "$COV_FILE" | head -1 | cut -d'"' -f2)"
+          LINE_PCT="$(python3 -c "print(f'{float(\"$LINE_RATE\") * 100:.1f}')")"
+          BRANCH_PCT="$(python3 -c "print(f'{float(\"$BRANCH_RATE\") * 100:.1f}')")"
+          echo "## .NET coverage" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value | Gate |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Line | **${LINE_PCT}%** | ≥ 55% |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Branch | ${BRANCH_PCT}% | — |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Download **coverage-dotnet-html** artifact for line-by-line report." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install ReportGenerator
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Generate HTML coverage report
+        run: |
+          COV_FILE="$(find TestResults -name coverage.cobertura.xml | head -1)"
+          reportgenerator \
+            "-reports:$COV_FILE" \
+            "-targetdir:coveragereport" \
+            "-reporttypes:Html;HtmlSummary" \
+            "-assemblyfilters:+DmbSidecar.Api"
+
+      - name: Upload .NET coverage XML
         uses: actions/upload-artifact@v4
         with:
           name: coverage-dotnet
           path: TestResults/**/coverage.cobertura.xml
+
+      - name: Upload .NET coverage HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-dotnet-html
+          path: coveragereport/
 
       - name: Install CycloneDX CLI
         run: |
@@ -81,8 +116,20 @@ jobs:
           pip install -r src/DmbSidecar.McpBridge/requirements.txt
           pip install -r src/DmbSidecar.McpBridge/requirements-dev.txt
 
-      - name: Pytest
+      - name: Pytest with coverage
         run: pytest tests/python -q
+
+      - name: Python coverage summary
+        run: |
+          RATE="$(python3 -c "import xml.etree.ElementTree as ET; r=ET.parse('tests/python/coverage-python.xml').getroot().get('line-rate'); print(f'{float(r)*100:.1f}')")"
+          echo "## Python coverage (lineup_engine)" >> "$GITHUB_STEP_SUMMARY"
+          echo "**${RATE}%** line coverage (gate ≥ 80%)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Python coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-python
+          path: tests/python/coverage-python.xml
 
       - name: Generate Python SBOM
         run: |
@@ -113,6 +160,19 @@ jobs:
           npm ci --cache /tmp/npm-cache-dmb
           npm run build
           npm test
+
+      - name: Extension coverage summary
+        working-directory: extension
+        run: |
+          PCT="$(node -e "const s=require('./coverage/coverage-summary.json'); const k=Object.keys(s).find(x=>x.includes('lineup-format')); console.log(s[k].lines.pct)")"
+          echo "## Extension coverage (lineup-format)" >> "$GITHUB_STEP_SUMMARY"
+          echo "**${PCT}%** line coverage (gate ≥ 90%)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload extension coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-extension
+          path: extension/coverage/
 
       - name: Generate npm SBOM
         working-directory: extension

@@ -1,3 +1,11 @@
+/**
+ * Edit Lineup page adapter — ImagineSports /manage/edit_lineup
+ *
+ * Scrapes batting order from `ul#phoneticlong > li` (not table rows).
+ * Outputs PageContext with 9 slots, lineup name, and pitcherSide (lhp/rhp).
+ *
+ * @see docs/CODEBASE_MAP.md
+ */
 import type { PageAdapter } from "./types.js";
 import type { PageContext, PageSlot } from "../../shared/types.js";
 

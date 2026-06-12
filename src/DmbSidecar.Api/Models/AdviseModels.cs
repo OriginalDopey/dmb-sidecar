@@ -1,5 +1,6 @@
 namespace DmbSidecar.Api.Models;
 
+/// <summary>One scraped row from an ImagineSports page (lineup slot or roster line).</summary>
 public sealed record PageSlot(
     int Order,
     string? Position,
@@ -9,6 +10,7 @@ public sealed record PageSlot(
     string? Section = null
 );
 
+/// <summary>Structured snapshot of the active browser tab sent with every API request.</summary>
 public sealed record PageContext(
     string PageType,
     string Url,
@@ -18,6 +20,7 @@ public sealed record PageContext(
     IReadOnlyDictionary<string, string>? Extra
 );
 
+/// <summary>General front-office question with page context from the extension.</summary>
 public sealed record AdviseRequest(
     string Question,
     PageContext Context
@@ -29,6 +32,8 @@ public sealed record Citation(
     string? Snippet
 );
 
+/// <summary>Answer payload returned to the Chrome side panel.</summary>
+/// <param name="QuestionKind">Set for Lineup Lab explain — e.g. <c>DhAssignment</c>, <c>PositionComparison</c>.</param>
 public sealed record AdviseResponse(
     string Answer,
     IReadOnlyList<Citation> Citations,

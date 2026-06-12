@@ -1,11 +1,11 @@
 // src/shared/lineup-format.ts
 function fmtAvg(n, decimals) {
-  if (n == null || n <= 0) return "\u2014";
+  if (n == null || Number.isNaN(n) || n <= 0) return "\u2014";
   const s = n.toFixed(decimals);
   return s.startsWith("0.") ? s.slice(1) : s;
 }
 function fmtRc600(n) {
-  if (n == null || n <= 0) return "\u2014";
+  if (n == null || Number.isNaN(n) || n <= 0) return "\u2014";
   return n.toFixed(1);
 }
 function fmtDef(n) {

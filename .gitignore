@@ -22,7 +22,10 @@ node_modules/
 # Test / CI artifacts
 TestResults/
 coverage/
+coveragereport/
 sbom/
+tests/python/coverage-python.xml
+extension/coverage/
 *.trx
 
 # OS / IDE
