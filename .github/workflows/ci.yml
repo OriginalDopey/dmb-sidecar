@@ -48,14 +48,16 @@ jobs:
           path: TestResults/**/coverage.cobertura.xml
 
       - name: Install CycloneDX CLI
-        run: dotnet tool install --global CycloneDX
+        run: |
+          dotnet tool install --global CycloneDX
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Generate .NET SBOM
         run: >
           dotnet-CycloneDX src/DmbSidecar.Api/DmbSidecar.Api.csproj
           -o sbom/dotnet
-          -f sbom-dotnet.json
-          --json
+          -fn sbom-dotnet.json
+          -F Json
 
       - name: Upload .NET SBOM
         uses: actions/upload-artifact@v4

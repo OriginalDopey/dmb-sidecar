@@ -28,7 +28,8 @@ echo "=== SBOM (local artifacts in sbom/) ==="
 mkdir -p sbom
 if command -v dotnet-CycloneDX >/dev/null 2>&1 || dotnet tool list -g | grep -q CycloneDX; then
   dotnet tool install --global CycloneDX 2>/dev/null || true
-  dotnet-CycloneDX src/DmbSidecar.Api/DmbSidecar.Api.csproj -o sbom/dotnet -f sbom-dotnet.json --json
+  export PATH="$PATH:$HOME/.dotnet/tools"
+  dotnet-CycloneDX src/DmbSidecar.Api/DmbSidecar.Api.csproj -o sbom/dotnet -fn sbom-dotnet.json -F Json
 fi
 python3 -m pip install -q cyclonedx-bom
 cyclonedx-py requirements src/DmbSidecar.McpBridge/requirements.txt -o sbom/sbom-python.json
