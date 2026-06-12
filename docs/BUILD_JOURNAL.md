@@ -85,16 +85,15 @@ dmb-sidecar/
 └── docs/
 ```
 
-**Dave manual steps (tomorrow):**
-```bash
-cd /Users/originaldopey/Documents/CursonProjects/dmb-sidecar
-git init
-git add .
-git commit -m "Initial DMB Sidecar scaffold for Agents League"
-gh repo create dmb-sidecar --public --source=. --push
-```
+**Dave manual steps:** None — synced overnight.
 
-**Result:** PASS (local); push pending Dave
+**Git remote (private):** https://github.com/OriginalDopey/dmb-sidecar  
+**Commit:** `f5b3054` on `main` (83 files)
+
+**Mac git note:** If `git` errors on xcodebuild, prefix commands with:
+`export DEVELOPER_DIR=/Library/Developer/CommandLineTools`
+
+**Result:** PASS
 
 ---
 

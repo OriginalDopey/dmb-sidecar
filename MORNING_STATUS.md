@@ -24,7 +24,9 @@
 4. `./scripts/start-dev.sh`
 5. Load Chrome extension → test on IS lineup page
 6. Fix lineup DOM selectors if slots are empty (DevTools)
-7. Record demo → push GitHub → hackathon submit
+7. Record demo → hackathon submit
+
+**GitHub (private):** https://github.com/OriginalDopey/dmb-sidecar — already pushed to `main`
 
 ## Repo location
 

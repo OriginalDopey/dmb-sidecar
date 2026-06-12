@@ -8,6 +8,8 @@ A side panel reads the IS screen you're on, grounds advice in **Microsoft Foundr
 
 Built for **Microsoft Build Agents League** (Reasoning Agents + IQ tools) and as an interview portfolio piece (agentic LOB overlay pattern).
 
+**Repository:** [github.com/OriginalDopey/dmb-sidecar](https://github.com/OriginalDopey/dmb-sidecar) (private)
+
 ## Architecture
 
 ```
