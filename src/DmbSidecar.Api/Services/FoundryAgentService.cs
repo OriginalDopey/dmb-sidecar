@@ -3,8 +3,6 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Azure.Core;
-using Azure.Identity;
 using DmbSidecar.Api.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -12,14 +10,25 @@ namespace DmbSidecar.Api.Services;
 
 /// <summary>
 /// HTTP client for Microsoft Foundry agents via the OpenAI-compatible Responses API.
-/// Uses <see cref="DefaultAzureCredential"/> for bearer tokens; same agent_reference body pattern as the Python reference client.
-/// Callers: <see cref="AdviseService"/>, <see cref="LineupExplainService"/>, and the <c>/foundry/smoke</c> probe.
+/// <para>
+/// Authentication uses the Azure CLI credential (<c>az account get-access-token</c>) to acquire
+/// a bearer token with the <c>https://ai.azure.com</c> audience required by the Foundry
+/// agent-specific endpoint. This sidesteps known .NET <c>DefaultAzureCredential</c> token-audience
+/// mismatches on macOS when targeting Foundry v1 project endpoints.
+/// </para>
+/// <para>
+/// The request body follows the same <c>agent_reference</c> pattern used by the
+/// <c>azure-ai-projects</c> Python SDK's <c>openai_client.responses.create()</c>.
+/// </para>
 /// </summary>
+/// <remarks>
+/// Callers: <see cref="AdviseService"/>, <see cref="LineupExplainService"/>,
+/// and the <c>/foundry/smoke</c> diagnostic probe.
+/// </remarks>
 public sealed class FoundryAgentService
 {
     private readonly HttpClient _http;
     private readonly FoundryOptions _options;
-    private readonly DefaultAzureCredential _credential;
     private readonly ILogger<FoundryAgentService> _log;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
@@ -36,7 +45,6 @@ public sealed class FoundryAgentService
     {
         _http = http;
         _options = options.Value;
-        _credential = new DefaultAzureCredential();
         _log = log;
     }
 
@@ -46,26 +54,26 @@ public sealed class FoundryAgentService
         !string.IsNullOrWhiteSpace(_options.ResponsesEndpoint);
 
     /// <summary>
-    /// Sends a single user message to the configured Foundry agent and returns extracted output text.
-    /// Throws when not configured or when the HTTP response is non-success.
+    /// Sends a single user message to the configured Foundry agent and returns the extracted output text.
     /// </summary>
+    /// <param name="userMessage">Natural-language prompt forwarded to the agent.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Agent response text (may include citation markers like <c>【4:0†source】</c>).</returns>
+    /// <exception cref="InvalidOperationException">Foundry endpoint not configured or CLI auth fails.</exception>
+    /// <exception cref="HttpRequestException">Foundry returns a non-success HTTP status.</exception>
     public async Task<string> InvokeAsync(string userMessage, CancellationToken ct = default)
     {
         if (!IsConfigured)
             throw new InvalidOperationException(
                 "Foundry is not configured. Set Foundry:ProjectEndpoint in appsettings or user secrets.");
 
-        var token = await _credential.GetTokenAsync(
-            new TokenRequestContext(new[] { _options.Scope }),
-            ct);
+        var token = await AcquireTokenAsync();
 
         var url = _options.BuildResponsesUrl();
         var body = new
         {
-            input = new[]
-            {
-                new { role = "user", content = userMessage },
-            },
+            input = new[] { new { role = "user", content = userMessage } },
+            stream = false,
             agent_reference = new
             {
                 name = _options.AgentName,
@@ -75,7 +83,7 @@ public sealed class FoundryAgentService
         };
 
         using var req = new HttpRequestMessage(HttpMethod.Post, url);
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Token);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         req.Content = new StringContent(
             JsonSerializer.Serialize(body, JsonOpts),
             Encoding.UTF8,
@@ -99,8 +107,45 @@ public sealed class FoundryAgentService
         return ExtractOutputText(raw);
     }
 
-    // --- Response parsing ---
+    // ─── Token Acquisition ───────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Acquires a bearer token via the Azure CLI. The Foundry agent-specific endpoint
+    /// requires the <c>https://ai.azure.com</c> audience, which the CLI produces correctly.
+    /// </summary>
+    private static async Task<string> AcquireTokenAsync()
+    {
+        const string resource = "https://ai.azure.com";
+
+        var psi = new ProcessStartInfo("az",
+            $"account get-access-token --resource {resource} --query accessToken -o tsv")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        using var proc = Process.Start(psi)
+            ?? throw new InvalidOperationException("Could not start 'az' CLI process.");
+
+        var token = (await proc.StandardOutput.ReadToEndAsync()).Trim();
+        await proc.WaitForExitAsync();
+
+        if (proc.ExitCode != 0 || string.IsNullOrEmpty(token))
+            throw new InvalidOperationException(
+                "Failed to acquire Azure CLI token. Ensure 'az login' has been run and the Skillsfest subscription is active.");
+
+        return token;
+    }
+
+    // ─── Response Parsing ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Extracts human-readable text from the Foundry Responses API JSON.
+    /// Handles both the top-level <c>output_text</c> shortcut and the nested
+    /// <c>output[].content[].text</c> structure.
+    /// </summary>
     private static string ExtractOutputText(string raw)
     {
         try
@@ -131,7 +176,7 @@ public sealed class FoundryAgentService
         }
         catch (JsonException)
         {
-            // fall through
+            // Unparseable response — return raw body as fallback
         }
 
         return raw;

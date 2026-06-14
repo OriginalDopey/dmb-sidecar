@@ -21,12 +21,12 @@ public sealed class FoundryOptions
     /// <summary>Agent version string for the Foundry agent reference payload.</summary>
     public string AgentVersion { get; set; } = "1";
 
-    /// <summary>Azure AD scope used when acquiring the bearer token.</summary>
-    public string Scope { get; set; } = "https://cognitiveservices.azure.com/.default";
+    /// <summary>Azure API version appended to the agent-specific endpoint URL.</summary>
+    public string ApiVersion { get; set; } = "2025-11-15-preview";
 
     /// <summary>
-    /// Resolves the OpenAI-compatible responses URL.
-    /// Prefers explicit <see cref="ResponsesEndpoint"/>; otherwise derives from project endpoint and agent name.
+    /// Resolves the agent-specific Responses API URL.
+    /// Prefers explicit <see cref="ResponsesEndpoint"/>; otherwise derives from project endpoint + agent name.
     /// </summary>
     public string BuildResponsesUrl()
     {
@@ -34,7 +34,7 @@ public sealed class FoundryOptions
             return ResponsesEndpoint.TrimEnd('/');
 
         var baseUrl = ProjectEndpoint.TrimEnd('/');
-        return $"{baseUrl}/agents/{AgentName}/endpoint/protocols/openai/responses";
+        return $"{baseUrl}/agents/{AgentName}/endpoint/protocols/openai/responses?api-version={ApiVersion}";
     }
 }
 
