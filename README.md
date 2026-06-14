@@ -1,12 +1,14 @@
-# DMB Sidecar
+# Front Office IQ
 
 [![CI](https://github.com/OriginalDopey/dmb-sidecar/actions/workflows/ci.yml/badge.svg)](https://github.com/OriginalDopey/dmb-sidecar/actions/workflows/ci.yml)
 
-**Foundry IQ-grounded Chrome copilot for [Diamond Mind Baseball](https://www.imaginesports.com) (ImagineSports).**
+**Grounded AI for a legacy web app: DOM context → ASP.NET → Foundry IQ → MCP league data.**
 
-A side panel reads the IS screen you're on, grounds advice in **Microsoft Foundry IQ** (your rules/strategy docs), and enriches with **live league data** via [dmb-mcp-server](https://github.com/OriginalDopey/dmb-mcp-server).
+A reasoning agent that reads the [ImagineSports](https://www.imaginesports.com) screen you're on, grounds answers in Microsoft Foundry IQ (your rules/strategy docs), and enriches with live league data via MCP — read-only, cited, auditable.
 
-> **Not affiliated with ImagineSports.** Personal assistant for Classic Standard league owners.
+> **Not affiliated with ImagineSports.** Personal reasoning agent for Classic Standard league owners.
+>
+> **Agents League Hackathon** — Track: **Reasoning Agents** (Microsoft Foundry)
 
 ---
 
