@@ -1,7 +1,8 @@
-# Front Office IQ — Demo & Interview Script
+# Front Office IQ — Interview Code Review Script
 
-> **Purpose:** Walkthrough bullets for hackathon demo video (5 min max) and job interview code review.
+> **Purpose:** Walkthrough bullets for job interview screen shares and code review discussions.
 > Not word-for-word — use as a guide and speak naturally.
+> For hackathon video, see `HACKATHON_VIDEO_SCRIPT.md`.
 
 ---
 
@@ -82,21 +83,31 @@
 
 ---
 
-## Part 6: Coding Principles (for interview)
+## Part 6: Coding Principles
 
-### My principles:
+### My engineering principles:
 1. **Offline-first** — Never depend on a cloud service being available. Degrade gracefully.
 2. **Typed everything** — No `dynamic`, no `any`, no unvalidated JSON. Typed config, typed responses, typed question routing.
-3. **Test the boundaries** — Integration tests prove the auth middleware works. Unit tests prove the logic works. Both matter.
-4. **Documentation is code** — XML docs, JSDoc, and docstrings are part of the deliverable, not afterthoughts.
-5. **Smallest correct diff** — Every commit does one thing. Every PR is reviewable.
-6. **CI is the source of truth** — If it doesn't pass CI, it doesn't ship. Coverage gates prevent regression.
+3. **Math first, LLM second** — If a question can be answered deterministically, don't spend tokens. Promote common LLM answers to hard-coded logic over time.
+4. **Guardrails are architecture** — Rate limiting, domain restriction, API key auth, and context fencing aren't afterthoughts. The API is the control plane.
+5. **Test the boundaries** — Integration tests prove auth works. Unit tests prove logic works. Both matter.
+6. **Documentation is code** — XML docs, JSDoc, and docstrings are part of the deliverable, not afterthoughts.
+7. **Smallest correct diff** — Every commit does one thing. Every PR is reviewable.
+8. **CI is the source of truth** — If it doesn't pass CI, it doesn't ship. Coverage gates prevent regression.
 
-### On AI-assisted development:
+### On AI-assisted development and why process matters MORE now:
 - "I used Cursor with Claude as my pair programmer. The AI wrote first drafts; I reviewed, corrected, and directed."
 - "The key in a vibe-coding world: **strict CI/CD pipelines + quality gates + documentation standards.** Speed without guardrails is tech debt at 10x velocity."
-- "Shared skills matter more than ever — when AI generates code, you need teammates who can READ and REVIEW at the same level."
-- "This project proves AI-assisted development works for enterprise-quality output — not just prototypes."
+- "Shared team skills matter more than ever — when AI generates code at speed, you need teammates who can READ and REVIEW at the same level. Code review becomes the critical skill."
+- "This project proves AI-assisted development works for enterprise-quality output — not just prototypes. But ONLY with process discipline."
+- "The $20 cost story isn't about being cheap — it's about proving that quality and speed aren't tradeoffs when you have the right guardrails."
+
+### The hybrid architecture pitch (for solution architect interviews):
+- "Not every question should hit an LLM. We classify first, route second."
+- "6 typed handlers answer instantly with deterministic math. Only unknowns go to Foundry."
+- "As we see repeated question patterns, we PROMOTE them from LLM to hard-coded. System gets cheaper and faster over time."
+- "The AI isn't the product — the decision support is the product. AI is one implementation detail behind the routing layer."
+- "Guardrails: domain-locked agent, API key auth, context-specific activation, no freeform LLM access. This can't become someone's free ChatGPT."
 
 ---
 
