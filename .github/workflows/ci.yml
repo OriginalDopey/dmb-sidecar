@@ -74,13 +74,13 @@ jobs:
             "-assemblyfilters:+DmbSidecar.Api"
 
       - name: Upload .NET coverage XML
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-dotnet
           path: TestResults/**/coverage.cobertura.xml
 
       - name: Upload .NET coverage HTML
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-dotnet-html
           path: coveragereport/
@@ -98,7 +98,7 @@ jobs:
           -F Json
 
       - name: Upload .NET SBOM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-dotnet
           path: sbom/dotnet/sbom-dotnet.json
@@ -129,7 +129,7 @@ jobs:
           echo "**${RATE}%** line coverage (gate ≥ 80%)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Python coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-python
           path: tests/python/coverage-python.xml
@@ -140,7 +140,7 @@ jobs:
           cyclonedx-py requirements src/DmbSidecar.McpBridge/requirements.txt -o sbom-python.json
 
       - name: Upload Python SBOM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-python
           path: sbom-python.json
@@ -183,7 +183,7 @@ jobs:
           echo "**${PCT}%** line coverage (gate ≥ 90%)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload extension coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-extension
           path: extension/coverage/
@@ -194,7 +194,7 @@ jobs:
           npm exec --cache /tmp/npm-cache-dmb -- @cyclonedx/cyclonedx-npm --output-file ../sbom-extension.json
 
       - name: Upload extension SBOM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-extension
           path: sbom-extension.json
